@@ -1,25 +1,23 @@
 import axios from "axios";
 import { useRef, useState } from "react";
 import Alert from "./Alert";
+import Input from "./ui/Input";
+import Button from "./ui/Button";
 
 const AddTeamModal = ({ setModal }) => {
-
     const colorRef = useRef(null);
-
     const [amountFormat, setAmountFormat] = useState("0");
-
     const [amount, setAmount] = useState("");
     const [teamName, setTeamName] = useState("");
-    const [color, setColor] = useState("#FFFFFF")
+    const [color, setColor] = useState("#FFFFFF");
     const [alert, setAlert] = useState({
         type: "",
         msg: ""
     });
 
     const handleInputChange = (e) => {
-
         setAmount(e.target.value);
-        setAmountFormat(Number(e.target.value).toLocaleString())
+        setAmountFormat(Number(e.target.value).toLocaleString());
     };
 
     const clearFields = () => {
@@ -34,96 +32,85 @@ const AddTeamModal = ({ setModal }) => {
             type: "",
             msg: ""
         });
-        let resp = {};
+        
         try {
-            resp = await axios.post("http://localhost:8080/api/teams", {
-                "name": teamName,
-                "cash": amount,
-                "color": color
+            await axios.post("http://localhost:8080/api/teams", {
+                name: teamName,
+                cash: amount,
+                color: color
             });
+            
             setAlert({
-                msg: "Equipo creado",
+                msg: "Equipo creado exitosamente",
                 type: "success"
             });
             clearFields();
         } catch (error) {
-            resp = error
             setAlert({
-                msg: "Hubo un error",
+                msg: "Hubo un error al crear el equipo",
                 type: "error"
             });
-            console.log(error);
+            console.error(error);
         }
-
-        console.log(resp);
     };
 
-    const inputClasses = "block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-[#23c8ac] sm:text-sm sm:leading-6"
-    const buttonClasses = "transition rounded px-4 py-1 text-white";
     return (
-        <>
-            <div className="border-b p-5">
-                <div className="flex flex-col gap-2">
-                    {
-                        alert.msg && <Alert type={alert.type} msg={alert.msg} />
-                    }
-                    <div>
-                        <label htmlFor="name" className="block mt-1 text-sm font-medium leading-6 text-gray-900">
-                            Nombre del equipo
-                        </label>
-                        <input
-                            value={teamName}
-                            onChange={e => setTeamName(e.target.value)}
-                            autoComplete="off"
-                            type="text"
-                            name="name"
-                            id="name"
-                            className={inputClasses + " px-3"}
-                            placeholder="Los manitos"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="name" className="block mt-1 text-sm font-medium leading-6 text-gray-900">
-                            Color del equipo
-                        </label>
+        <div className="space-y-6">
+            {alert.msg && <Alert type={alert.type} msg={alert.msg} />}
+            
+            <div className="space-y-4">
+                <Input
+                    label="Nombre del equipo"
+                    value={teamName}
+                    onChange={e => setTeamName(e.target.value)}
+                    placeholder="Ej: Los Manitos"
+                    autoComplete="off"
+                />
+
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Color del equipo
+                    </label>
+                    <div className="flex items-center gap-4">
                         <input
                             ref={colorRef}
                             value={color}
                             onChange={e => setColor(e.target.value)}
                             type="color"
-                            name="color"
-                            id="color"
-                            className={inputClasses + " px-0 py-0"}
+                            className="h-10 w-20 rounded-lg cursor-pointer"
+                        />
+                        <div 
+                            className="h-10 w-10 rounded-lg border border-gray-300 dark:border-gray-600"
+                            style={{ backgroundColor: color }}
                         />
                     </div>
-                    <div>
-                        <label htmlFor="price" className="block mt-1 text-sm font-medium leading-6 text-gray-900">
-                            Puntaje inicial <span className="text-sm font-normal ml-2 text-neutral-400">{amountFormat}</span>
-                        </label>
-                        <div className="relative rounded-md shadow-sm">
-                            {/* <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                <span className="text-gray-500 sm:text-sm">$</span>
-                            </div> */}
-                            <input
-                                value={amount}
-                                onChange={handleInputChange}
-                                autoComplete="off"
-                                type="text"
-                                name="price"
-                                id="price"
-                                className={inputClasses + " pl-7 pr-20"}
-                                placeholder="0.00"
-                            />
-                        </div>
-                    </div>
                 </div>
-            </div>
-            <div className="p-5 flex gap-2 justify-end">
-                <button onClick={() => setModal(false)} className={buttonClasses + " bg-neutral-400 hover:bg-neutral-500"}>Cancelar</button>
-                <button onClick={handleSubmit} className={buttonClasses + " bg-green-600 hover:bg-green-700"}>Agregar</button>
-            </div>
-        </>
-    )
-}
 
-export default AddTeamModal
+                <Input
+                    label={`Puntaje inicial ${amountFormat ? `(${amountFormat})` : ''}`}
+                    value={amount}
+                    onChange={handleInputChange}
+                    placeholder="0"
+                    autoComplete="off"
+                />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
+                <Button
+                    variant="ghost"
+                    onClick={() => setModal(false)}
+                >
+                    Cancelar
+                </Button>
+                <Button
+                    variant="primary"
+                    onClick={handleSubmit}
+                >
+                    Agregar Equipo
+                </Button>
+            </div>
+        </div>
+    );
+};
+
+export default AddTeamModal;

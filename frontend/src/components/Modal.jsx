@@ -1,49 +1,64 @@
-import { useRef } from "react";
+import { useEffect } from 'react';
 
-const Modal = ({ content, modal, setModal, label }) => {
+const Modal = ({ modal, setModal, content, label }) => {
+    useEffect(() => {
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                setModal(false);
+            }
+        };
 
-    const modalRef = useRef(null);
-
-    const handleBackgroundClick = (e) => {
-        if (e.target === modalRef.current) {
-            setModal(false);
+        if (modal) {
+            document.addEventListener('keydown', handleEscape);
+            document.body.style.overflow = 'hidden';
         }
-    };
+
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+            document.body.style.overflow = 'unset';
+        };
+    }, [modal, setModal]);
+
+    if (!modal) return null;
+
     return (
-        <>
-            {modal && (
-                <>
-                    <div
-                        ref={modalRef} // Ref al div del modal
-                        className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none"
-                        onMouseDown={handleBackgroundClick} // Manejador de clic en el fondo oscuro
-                    >
-                        <div className="relative w-auto my-6 mx-auto max-w-3xl">
-                            <div className="bg-white rounded min-w-[500px]">
-                                <div className='flex justify-between items-center px-5 py-2 border-b'>
-                                    <h1 className="text-neutral-700 font-medium text-xl">{label}</h1>
-                                    <button onClick={() => setModal(false)} className="hover:bg-neutral-100 transition p-2 rounded-lg grid place-content-center text-neutral-700">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="icon icon-tabler icon-tabler-x" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                            <path d="M18 6l-12 12"></path>
-                                            <path d="M6 6l12 12"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <div>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+                {/* Overlay */}
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                    onClick={() => setModal(false)}
+                />
 
-                                    {/* Contenido del modal */}
-                                    {content}
-
-                                </div>
-                            </div>
+                {/* Modal */}
+                <div className="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    {/* Header */}
+                    <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                                {label}
+                            </h3>
+                            <button
+                                type="button"
+                                className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                                onClick={() => setModal(false)}
+                            >
+                                <span className="sr-only">Cerrar</span>
+                                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
-                    <div className="opacity-20 fixed inset-0 z-40 bg-black"></div>
-                </>
-            )}
-        </>
-    )
-}
 
-export default Modal
+                    {/* Content */}
+                    <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        {content}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Modal;
