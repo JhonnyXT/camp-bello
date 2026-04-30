@@ -28,7 +28,7 @@ const BankModal = ({ setModal }) => {
         });
 
         try {
-            await axios.put(`http://localhost:8080/api/teams/${teamID}`, {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/teams/${teamID}`, {
                 cash: (Number(amount) + Number(amountFormat))
             });
             
@@ -49,7 +49,7 @@ const BankModal = ({ setModal }) => {
 
     const handleData = async () => {
         try {
-            const { data } = await axios.get("http://localhost:8080/api/teams");
+            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/teams`);
             setDataApi(data);
         } catch (error) {
             setAlert({

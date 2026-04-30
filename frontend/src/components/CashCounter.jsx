@@ -91,7 +91,7 @@ const CashCounter = () => {
 
     const handleData = async () => {
         try {
-            const { data } = await axios.get("http://localhost:8080/api/teams/rank");
+            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/teams/rank`);
             setTeams(data);
             console.log(data);
         } catch (error) {
