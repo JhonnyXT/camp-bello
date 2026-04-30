@@ -1,0 +1,152 @@
+---
+description: "Patrones para crear y modificar componentes React en Codigo Camp. Aplica al trabajar en componentes, UI, interfaces, vistas o pantallas del frontend."
+globs: "frontend/src/**/*.jsx"
+alwaysApply: false
+---
+
+## Ubicación de nuevos componentes
+
+- Componentes del sistema de diseño (Button, Card, Input, Badge, etc.) → `frontend/src/components/ui/`
+- Componentes de página/vista (pantallas completas) → `frontend/src/components/`
+- **Nunca** crear componentes en la raíz `frontend/src/`
+
+## Plantilla base para componente UI
+
+```jsx
+// frontend/src/components/ui/NombreComponente.jsx
+
+const variants = {
+  primary: 'bg-primary-600 hover:bg-primary-700 text-white',
+  secondary: 'bg-secondary-600 hover:bg-secondary-700 text-white',
+  outline: 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950',
+};
+
+const sizes = {
+  sm: 'px-3 py-1.5 text-sm',
+  md: 'px-4 py-2 text-base',
+  lg: 'px-6 py-3 text-lg',
+};
+
+export const NombreComponente = ({
+  variant = 'primary',
+  size = 'md',
+  className = '',
+  children,
+  ...props
+}) => {
+  return (
+    <div
+      className={`${variants[variant]} ${sizes[size]} rounded-lg transition-colors ${className}`}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+};
+```
+
+## Dark mode — obligatorio en componentes nuevos
+
+```jsx
+// Fondos
+bg-white dark:bg-gray-800          // superficie principal
+bg-gray-50 dark:bg-gray-900        // fondo de página
+bg-gray-100 dark:bg-gray-700       // superficie secundaria
+
+// Textos
+text-gray-900 dark:text-gray-100   // texto principal
+text-gray-600 dark:text-gray-400   // texto secundario
+text-gray-500 dark:text-gray-500   // texto terciario
+
+// Bordes
+border-gray-200 dark:border-gray-700
+```
+
+## Animaciones — usar las definidas en tailwind.config.js
+
+```jsx
+<div className="animate-fade-in">   // fadeIn 0.3s ease-in-out — para apariciones
+<div className="animate-slide-in">  // slideIn 0.3s ease-in-out — para deslizamientos
+```
+
+Para animaciones de valores (ej. barras de porcentaje) usar `@react-spring/web`:
+```jsx
+import { useSpring, animated } from '@react-spring/web';
+const springProps = useSpring({ width: `${value}%`, from: { width: '0%' }, config: { duration: 3000 } });
+<animated.div style={springProps} />
+```
+
+## Modales — usar el wrapper existente
+
+**Nunca crear un nuevo wrapper de modal.** Usar `Modal.jsx` con la prop `content`:
+
+```jsx
+import Modal from './Modal';
+
+// Estado en el componente padre
+const [modal, setModal] = useState(false);
+
+// Apertura
+<Button onClick={() => setModal(true)}>Abrir</Button>
+
+// Modal
+<Modal
+  modal={modal}
+  setModal={setModal}
+  label="Título del modal"
+  content={<MiFormulario onClose={() => setModal(false)} />}
+/>
+```
+
+## Notificaciones — usar Alert.jsx
+
+```jsx
+import Alert from './Alert';
+
+const [alert, setAlert] = useState({ show: false, message: '', type: 'success' });
+
+// Disparar notificación
+setAlert({ show: true, message: 'Operación exitosa', type: 'success' });
+setAlert({ show: true, message: 'Ocurrió un error', type: 'error' });
+
+// En el JSX (dentro del return)
+{alert.show && <Alert alert={alert} setAlert={setAlert} />}
+```
+
+## Navegación
+
+```jsx
+import { useNavigate, useLocation } from 'react-router-dom';
+
+const navigate = useNavigate();
+const location = useLocation();
+
+// Ir a una ruta
+navigate('/vault');
+
+// Saber si una ruta está activa (para nav items)
+const isActive = location.pathname === '/vault';
+```
+
+## Estado local — sin librería global
+
+No introducir Redux, Zustand ni Context API sin petición explícita.
+Todo el estado se maneja con `useState` y se pasa como props.
+
+## Llamadas a la API — patrón con Axios
+
+```jsx
+import axios from 'axios';
+
+// URL base (hardcodeada actualmente — usar skill setup-env-vars para migrar)
+const API_URL = 'http://localhost:8080';
+
+const handleAction = async () => {
+  try {
+    const { data } = await axios.post(`${API_URL}/api/teams`, payload);
+    setAlert({ show: true, message: data.msg, type: 'success' });
+  } catch (error) {
+    setAlert({ show: true, message: 'Error en la operación', type: 'error' });
+  }
+};
+```

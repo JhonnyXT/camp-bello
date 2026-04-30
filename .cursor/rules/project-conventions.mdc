@@ -1,0 +1,61 @@
+---
+description: "Convenciones globales del proyecto Codigo Camp (La Puerta / Camp Bello)"
+alwaysApply: true
+---
+
+## Lenguaje y extensiones
+
+- Todo el código es **JavaScript puro** (`.jsx` para componentes, `.js` para el resto)
+- No migrar a TypeScript sin petición explícita del usuario
+- No agregar PropTypes — está desactivado en ESLint (`"react/prop-types": "off"`)
+
+## Exports
+
+- Siempre **named exports** en componentes React
+- Nunca `export default` en componentes nuevos
+- Ejemplo correcto: `export const MiComponente = () => { ... }`
+
+## Estilos
+
+- Usar **Tailwind CSS exclusivamente** para todos los estilos
+- **Nunca** usar CSS en línea (`style={{...}}`)
+- **Nunca** crear archivos `.module.css` o `.css` nuevos
+- Paleta de colores del proyecto: `primary-{50..900}` y `secondary-{50..900}`
+  (definidas en `tailwind.config.js` — NO usar colores Tailwind directos como `sky-` o `slate-`)
+
+## Dark mode
+
+- Toda interfaz nueva debe soportar dark mode con variantes `dark:` de Tailwind
+- La estrategia es `class` — el toggle manipula `document.documentElement.classList`
+- Patrón mínimo: `bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`
+
+## Variables de entorno
+
+- **Nunca hardcodear** credenciales, contraseñas, URLs de servicios o tokens
+- En la API (`api/`): usar `process.env.NOMBRE_VAR`
+- En el frontend (`frontend/`): usar `import.meta.env.VITE_NOMBRE_VAR`
+- Si el usuario pide trabajar con variables de entorno, activar la skill `setup-env-vars`
+
+## Manejo de errores
+
+- Todas las funciones async en la API deben tener `try/catch`
+- Las llamadas Axios en el frontend deben tener `try/catch` y mostrar el estado
+  al usuario usando el componente `Alert.jsx`
+- No usar `console.log` en producción para datos sensibles
+
+## Componentes
+
+- Los componentes legacy `components/Button.jsx` y `components/ButtonIcon.jsx` están
+  **deprecados** — no usarlos en código nuevo
+- Usar siempre `components/ui/Button.jsx`, `components/ui/Card.jsx`, `components/ui/Input.jsx`
+- Nuevos componentes UI van en `frontend/src/components/ui/`
+
+## Modelos Sequelize
+
+- Siempre `timestamps: false` — la BD no tiene columnas `createdAt`/`updatedAt`
+- Importar la conexión desde `api/database/config.js`
+
+## Commits y calidad
+
+- Ejecutar `npm run lint` desde `frontend/` antes de confirmar cambios en el frontend
+- Formato de commit sugerido: `tipo(scope): descripción` (ej. `feat(api): agregar endpoint de jugadores`)

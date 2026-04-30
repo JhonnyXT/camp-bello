@@ -1,0 +1,103 @@
+---
+description: "Índice maestro del flujo de desarrollo de Codigo Camp. Orquesta las fases obligatorias (rama → código → lint → commit → PR) y delega a rules y skills específicas. Aplica en cualquier tarea de desarrollo."
+alwaysApply: true
+---
+
+# Flujo de desarrollo — Codigo Camp
+
+Para cualquier desarrollo, recorrer las fases EN ORDEN. **Nunca saltarse fases.**
+Esta rule solo orquesta. Cada fase delega al recurso indicado.
+
+---
+
+## Fase 1 — Antes de tocar código: estado del repo
+
+| Paso | Acción |
+|---|---|
+| 1.1 | Verificar que no hay cambios sin commitear: revisar el estado del repo antes de empezar |
+| 1.2 | Crear rama de trabajo si la tarea es nueva (ver `git-workflow.mdc`) |
+| 1.3 | Si el usuario no especificó el tipo de cambio, preguntar: feature / bugfix / chore / refac |
+
+Detalle de nomenclatura de ramas: rule `git-workflow.mdc`.
+
+---
+
+## Fase 2 — Durante el desarrollo: qué skill usar
+
+| Si vas a... | Usa |
+|---|---|
+| Crear un endpoint REST nuevo | skill `add-api-endpoint` |
+| Crear un componente React | skill `add-react-component` |
+| Crear un modelo Sequelize / tabla | skill `add-sequelize-model` |
+| Debuggear un error en cualquier capa | skill `debug-fullstack` |
+| Migrar credenciales o URL a `.env` | skill `setup-env-vars` |
+| Configurar testing por primera vez | skill `setup-testing` |
+| Editar archivos en `api/**/*.js` | rule `api-patterns.mdc` se activa automáticamente |
+| Editar archivos en `frontend/src/**/*.jsx` | rule `react-components.mdc` se activa automáticamente |
+
+---
+
+## Fase 3 — Antes de commit: calidad
+
+| Paso | Comando | Desde |
+|---|---|---|
+| 3.1 Lint del frontend | `npm run lint` | `frontend/` |
+| 3.2 Verificar manualmente que la app levanta | `npm run start` | `frontend/` |
+| 3.3 Commit con mensaje convencional | slash `/commit` o regla de `git-workflow.mdc` | raíz |
+
+**El lint DEBE pasar con 0 warnings antes del commit.**
+Si hay errores de lint, corregirlos antes de continuar.
+
+---
+
+## Fase 4 — Push y PR
+
+El agente **NUNCA pushea ni crea PRs automáticamente**.
+Esperar confirmación explícita del usuario.
+
+Una vez autorizado:
+```bash
+git push origin <nombre-de-rama>
+```
+
+Luego entregar al usuario:
+- **URL para crear PR**: https://github.com/<owner>/<repo>/compare/<rama>
+- **Título sugerido**: formato `tipo(scope): descripción` (ver `git-workflow.mdc`)
+- **Descripción sugerida**: lista de cambios + cómo probar
+
+---
+
+## Cosas que NUNCA hacer
+
+- Commitear sin correr `npm run lint` primero (desde `frontend/`)
+- Hardcodear credenciales o URLs de servicios en el código
+- Usar `components/Button.jsx` o `components/ButtonIcon.jsx` (son legacy)
+- Usar `export default` en componentes nuevos (siempre named exports)
+- Usar CSS en línea (`style={{...}}`) — solo Tailwind
+- Usar colores Tailwind directos como `sky-` o `slate-` — solo `primary-` y `secondary-`
+- Olvidar `timestamps: false` en modelos Sequelize
+- Hacer funciones async sin `try/catch`
+- Pushear `.env` o archivos con credenciales
+
+---
+
+## Mapa completo de resources
+
+| Recurso | Tipo | Para qué |
+|---|---|---|
+| `project-conventions.mdc` | Rule alwaysApply | Lenguaje, exports, estilos, dark mode |
+| `api-patterns.mdc` | Rule por globs | Backend Express: plantillas de routes/controllers/models |
+| `react-components.mdc` | Rule por globs | Frontend React: plantillas de componentes, modales, alertas |
+| `git-workflow.mdc` | Rule manual | Nomenclatura de ramas, formato de commits, plantilla de PR |
+| `add-api-endpoint` | Skill auto | Crear endpoint completo: model → controller → route → server |
+| `add-react-component` | Skill auto | Crear componente siguiendo sistema de diseño |
+| `add-sequelize-model` | Skill auto | Crear modelo y tabla en MySQL |
+| `debug-fullstack` | Skill auto | Debugging por capas: MySQL → Express → React |
+| `setup-env-vars` | Skill auto | Migrar credenciales hardcodeadas a `.env` |
+| `setup-testing` | Skill auto | Configurar Vitest desde cero |
+| `/arrancar` | Slash command | Instalar deps + lanzar dev server + verificar URLs |
+| `/revisar` | Slash command | Lint + verificar build + reportar problemas |
+| `/commit` | Slash command | Analizar diff + proponer mensaje convencional + commitear |
+| `auditor-deuda` | Subagent | Inventario priorizado de deuda técnica (read-only) |
+| `auditor-api` | Subagent | Detectar endpoints sin validación, CORS abierto, credenciales expuestas |
+| `revisor-ui` | Subagent | Verificar dark mode, tokens de color, accesibilidad en componentes |

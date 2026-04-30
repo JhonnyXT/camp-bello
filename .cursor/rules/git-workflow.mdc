@@ -1,0 +1,137 @@
+---
+description: "Nomenclatura de ramas, formato de commits y plantilla de PR para Codigo Camp. Activar cuando el usuario pida crear una rama, hacer un commit, preparar un PR o necesite el formato de mensaje de commit."
+alwaysApply: false
+---
+
+# Git Workflow — Codigo Camp
+
+---
+
+## Nomenclatura de ramas
+
+```
+<tipo>/<descripcion-corta-en-kebab-case>
+```
+
+| Tipo | Cuándo |
+|---|---|
+| `feat/` | Nueva funcionalidad |
+| `fix/` | Corrección de bug |
+| `chore/` | Tareas de mantenimiento (deps, config, deuda técnica) |
+| `refac/` | Refactorización sin cambio de comportamiento |
+| `docs/` | Solo documentación |
+
+**Ejemplos reales para este proyecto:**
+```bash
+git checkout -b feat/agregar-endpoint-actividades
+git checkout -b fix/url-api-hardcodeada
+git checkout -b chore/migrar-credenciales-env
+git checkout -b refac/eliminar-componentes-legacy
+git checkout -b docs/actualizar-readme
+```
+
+---
+
+## Formato de commits (Conventional Commits)
+
+```
+<tipo>(<scope>): <descripción en imperativo>
+```
+
+| Tipo | Cuándo |
+|---|---|
+| `feat` | Nueva funcionalidad visible |
+| `fix` | Corrección de bug |
+| `chore` | Mantenimiento: deps, config, build |
+| `refac` | Refactorización interna |
+| `docs` | Solo documentación / AGENTS.md |
+| `style` | Cambios de formato / Tailwind sin lógica |
+| `test` | Tests nuevos o existentes |
+
+| Scope | Qué cubre |
+|---|---|
+| `api` | Backend Express, controladores, modelos, rutas |
+| `frontend` | Componentes React, páginas, assets |
+| `ui` | Solo el sistema de diseño en `components/ui/` |
+| `db` | Modelos Sequelize, migraciones, config BD |
+| `config` | Variables de entorno, Vite, Tailwind, ESLint |
+| `agents` | Skills, rules, subagents, AGENTS.md |
+
+**Ejemplos reales:**
+```
+feat(api): agregar endpoint GET /api/teams/:id
+fix(frontend): corregir URL hardcodeada en CashCounter
+chore(config): migrar credenciales MySQL a .env
+refac(ui): eliminar componentes legacy Button y ButtonIcon
+docs(agents): agregar skill setup-testing
+style(frontend): estandarizar clases dark mode en BankModal
+```
+
+---
+
+## Proceso antes de commitear
+
+```bash
+# 1. Desde frontend/ — OBLIGATORIO antes de cada commit
+npm run lint
+
+# Si hay errores, corregirlos. Si el lint pasa con 0 warnings, continuar.
+
+# 2. Staging selectivo — solo los archivos del cambio actual
+git add api/routes/nueva-entidad.js
+git add api/controllers/nueva-entidad.controller.js
+# etc.
+
+# 3. Commit con mensaje convencional
+git commit -m "feat(api): agregar endpoint de actividades"
+```
+
+---
+
+## Plantilla de descripción de PR
+
+```
+## ¿Qué hace este PR?
+<descripción de 1-3 frases del cambio>
+
+## Cambios principales
+- <archivo o módulo> — <qué cambió>
+- <archivo o módulo> — <qué cambió>
+
+## Cómo probar
+1. `cd frontend && npm run start`
+2. <pasos específicos para verificar el cambio>
+3. Verificar en http://localhost:5173
+
+## Deuda técnica resuelta (si aplica)
+- [ ] <ítem de deuda que este PR cierra>
+
+## Capturas (si hay cambios visuales)
+<adjuntar si aplica>
+```
+
+---
+
+## Flujo completo de rama → PR
+
+```bash
+# 1. Crear rama
+git checkout -b feat/mi-nueva-funcionalidad
+
+# 2. Desarrollar + lint
+npm run lint  # desde frontend/
+
+# 3. Commit(s)
+git add <archivos>
+git commit -m "feat(scope): descripción"
+
+# 4. Push
+git push origin feat/mi-nueva-funcionalidad
+
+# 5. Crear PR manualmente en:
+# https://github.com/<owner>/<repo>/compare/feat/mi-nueva-funcionalidad
+# (gh CLI no disponible — flujo web)
+```
+
+**Nota:** gh CLI no está instalado. El agente entregará la URL y la plantilla
+de descripción lista para pegar en el navegador.

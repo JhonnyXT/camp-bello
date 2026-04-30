@@ -1,0 +1,183 @@
+---
+description: "Patrones para el backend Express de Codigo Camp. Aplica al trabajar en la API, endpoints, modelos, controladores o base de datos."
+globs: "api/**/*.js"
+alwaysApply: false
+---
+
+## Flujo obligatorio para toda nueva funcionalidad
+
+```
+routes/[entidad].js
+  └── controllers/[entidad].controller.js
+        └── models/[entidad].js  (Sequelize)
+              └── database/config.js  (conexión MySQL)
+```
+
+## Registrar nuevas rutas en el servidor
+
+Cada nuevo recurso debe registrarse en el constructor de `models/server.js`:
+
+```js
+// En el constructor de Server
+this.nuevaEntidadPath = '/api/nueva-entidad';
+
+// En el método routes()
+routes() {
+    this.app.use(this.teamsPath, require('../routes/teams'));
+    this.app.use(this.nuevaEntidadPath, require('../routes/nueva-entidad')); // ← agregar aquí
+}
+```
+
+## Plantilla de archivo de rutas
+
+```js
+// api/routes/[entidad].js
+const { Router } = require('express');
+const { getAll, getById, create, update } = require('../controllers/[entidad].controller');
+
+const router = Router();
+
+router.get('/',     getAll);
+router.get('/:id',  getById);
+router.post('/',    create);
+router.put('/:id',  update);
+router.delete('/:id', remove);
+
+module.exports = router;
+```
+
+## Plantilla de controlador
+
+```js
+// api/controllers/[entidad].controller.js
+const Entidad = require('../models/[entidad]');
+
+// GET todos
+const getAll = async (req, res) => {
+    try {
+        const items = await Entidad.findAll();
+        res.json(items);
+    } catch (error) {
+        res.status(500).json({ msg: 'Error al obtener registros', error });
+    }
+};
+
+// GET por ID
+const getById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const item = await Entidad.findByPk(id);
+        if (!item) return res.status(404).json({ msg: 'Registro no encontrado' });
+        res.json(item);
+    } catch (error) {
+        res.status(500).json({ msg: 'Error al obtener registro', error });
+    }
+};
+
+// POST crear
+const create = async (req, res) => {
+    try {
+        const { campo1, campo2 } = req.body;
+        // Validar campos requeridos
+        if (!campo1 || campo2 === undefined) {
+            return res.status(400).json({ msg: 'Faltan campos requeridos' });
+        }
+        const nuevo = await Entidad.create({ campo1, campo2 });
+        res.status(201).json({ msg: 'Creado exitosamente', data: nuevo });
+    } catch (error) {
+        res.status(500).json({ msg: 'Error al crear', error });
+    }
+};
+
+// PUT actualizar
+const update = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const item = await Entidad.findByPk(id);
+        if (!item) return res.status(404).json({ msg: 'Registro no encontrado' });
+        await item.update(req.body);
+        res.json({ msg: 'Actualizado exitosamente' });
+    } catch (error) {
+        res.status(500).json({ msg: 'Error al actualizar', error });
+    }
+};
+
+module.exports = { getAll, getById, create, update };
+```
+
+## Plantilla de modelo Sequelize
+
+```js
+// api/models/[entidad].js
+const { DataTypes } = require('sequelize');
+const db = require('../database/config');
+
+const Entidad = db.define('Entidad', {
+    nombre:    { type: DataTypes.STRING },
+    cantidad:  { type: DataTypes.DECIMAL(20, 0) },
+    activo:    { type: DataTypes.BOOLEAN, defaultValue: true },
+    // Agregar campos según necesidad
+}, {
+    timestamps: false   // SIEMPRE false en este proyecto
+});
+
+module.exports = Entidad;
+```
+
+## Respuestas JSON — formato estándar
+
+```js
+// Éxito con datos:
+res.json({ msg: 'Descripción de la acción', data: resultado });
+
+// Éxito sin datos:
+res.json({ msg: 'Actualizado exitosamente' });
+
+// Error de validación (client error):
+res.status(400).json({ msg: 'Descripción del problema' });
+
+// No encontrado:
+res.status(404).json({ msg: 'Registro no encontrado' });
+
+// Error del servidor:
+res.status(500).json({ msg: 'Error interno', error });
+```
+
+## Operaciones Sequelize más usadas
+
+```js
+// Buscar todos
+await Modelo.findAll();
+
+// Buscar por primary key
+await Modelo.findByPk(id);
+
+// Buscar uno con condición
+await Modelo.findOne({ where: { campo: valor } });
+
+// Crear
+await Modelo.create({ campo1, campo2 });
+
+// Actualizar (en instancia)
+const item = await Modelo.findByPk(id);
+await item.update({ campo: nuevoValor });
+
+// Eliminar
+await item.destroy();
+
+// Máximo de un campo
+const max = await Modelo.max('cash');
+
+// Todos ordenados
+await Modelo.findAll({ order: [['cash', 'DESC']] });
+```
+
+## Gotchas del backend
+
+- `timestamps: false` es **obligatorio** — la tabla MySQL no tiene columnas `createdAt`/`updatedAt`
+- La conexión a la BD está en `api/database/config.js` — siempre importar desde ahí
+- Los modelos se sincronizan automáticamente al iniciar (`db.sync()` en `Server`)
+- CORS ya está configurado en `server.js` — no añadir otro `cors()` en las rutas
+- Validar manualmente los campos de `req.body` antes de usarlos (sin Joi ni Zod)
+- El endpoint `/rank` en `team.controller.js` calcula `percent` dinámicamente —
+  es un patrón que puede replicarse para otros rankings
