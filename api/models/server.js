@@ -20,14 +20,15 @@ class Server {
     }
 
     async conectarDB() {
-
         try {
             await db.authenticate();
             console.log('Connection has been established successfully.');
+            // Sincroniza el schema (agrega columnas nuevas sin borrar datos)
+            await db.sync({ alter: true });
+            console.log('Schema sincronizado.');
         } catch (error) {
             console.error('Unable to connect to the database:', error);
-        };
-        
+        }
     }
 
     middlewares() {

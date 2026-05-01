@@ -44,27 +44,39 @@ const postTeams = async (req, res) => {
 };
 
 const putTeams = async (req, res) => {
+    try {
+        const { body, params } = req;
+        const { cash, name, color } = body;
+        const updateData = {};
+        if (cash  !== undefined) updateData.cash  = cash;
+        if (name  !== undefined) updateData.name  = name;
+        if (color !== undefined) updateData.color = color;
 
-    const { body, params } = req;
-    const { cash } = body;
-    await Team.update(
-        { cash: cash },
-        {
-            where: {
-                id: params.id
-            }
-        }
-    );
+        await Team.update(updateData, { where: { id: params.id } });
+        res.json({ msg: "Equipo actualizado" });
+    } catch (error) {
+        res.status(500).json({ msg: "Error al actualizar equipo", error: error.message });
+    }
+};
 
-    res.json({
-        msg: "Monto actualizado",
-    })
-
+const putSoldier = async (req, res) => {
+    try {
+        const { body, params } = req;
+        const soldierType = body.soldierType ?? null;
+        await Team.update(
+            { soldierType },
+            { where: { id: params.id } }
+        );
+        res.json({ msg: "Soldado actualizado", soldierType });
+    } catch (error) {
+        res.status(500).json({ msg: "Error al asignar soldado", error: error.message });
+    }
 };
 
 module.exports = {
     getRank,
     getTeams,
     postTeams,
-    putTeams
+    putTeams,
+    putSoldier,
 }

@@ -10,7 +10,12 @@ const Team = db.define('Team', {
     },
     color: {
         type: DataTypes.STRING
-    }
+    },
+    soldierType: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null,
+    },
 }, {
     timestamps: false,
 });
