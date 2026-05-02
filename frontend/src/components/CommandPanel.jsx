@@ -186,10 +186,86 @@ const TeamControl = ({ team, onUpdate }) => {
   );
 };
 
+// ── Modal de selección de alcance ───────────────────────────────
+const SCOPE_META = {
+  emboscada: { emoji: '💥', label: 'EMBOSCADA',    color: '#f87171',  border: 'rgba(169,50,38,0.5)' },
+  bono:      { emoji: '🌟', label: 'BONO DE HONOR', color: '#C8922A', border: 'rgba(200,146,42,0.5)' },
+  ruleta:    { emoji: '🎲', label: 'RULETA',        color: '#c084fc',  border: 'rgba(168,85,247,0.5)' },
+};
+
+const ScopePickerModal = ({ activity, teams, onClose, onSelect }) => {
+  const meta = SCOPE_META[activity] || {};
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-camp-carbon/90 backdrop-blur-sm px-6"
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="bg-[#1f1f1f] rounded-sm p-6 w-full max-w-xs border animate-fade-in"
+        style={{ borderColor: meta.border, boxShadow: `0 0 40px ${meta.border}` }}
+      >
+        {/* Cabecera */}
+        <div className="text-center mb-5">
+          <span className="text-5xl block mb-2">{meta.emoji}</span>
+          <h3 className="font-display text-2xl tracking-widest" style={{ color: meta.color }}>
+            {meta.label}
+          </h3>
+          <p className="font-military text-camp-arena/45 text-sm mt-1">
+            ¿A quién aplica esta actividad?
+          </p>
+        </div>
+
+        {/* Todos */}
+        <button
+          onClick={() => onSelect('all')}
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-sm border border-camp-arena/25 hover:border-camp-arena/55 hover:bg-white/5 transition-all mb-3 group"
+        >
+          <span className="text-xl">👥</span>
+          <div className="text-left flex-1">
+            <p className="font-military text-camp-hueso text-sm tracking-wide">Todos los equipos</p>
+            <p className="font-military text-camp-arena/35 text-xs">{teams.length} equipos participan</p>
+          </div>
+          <span className="font-military text-xs text-camp-arena/30 group-hover:text-camp-dorado transition-colors">→</span>
+        </button>
+
+        <p className="font-military text-camp-arena/25 text-[10px] tracking-widest uppercase text-center mb-3">
+          o elige un equipo
+        </p>
+
+        {/* Lista de equipos */}
+        <div className="space-y-1.5 mb-4">
+          {teams.map(team => (
+            <button
+              key={team.id}
+              onClick={() => onSelect(team.id)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm border border-camp-arena/15 hover:border-camp-arena/40 hover:bg-white/5 transition-all group"
+            >
+              <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: team.color }} />
+              <span className="font-military text-sm text-camp-hueso flex-1 text-left">{team.name}</span>
+              <span className="font-military text-xs text-camp-arena/25 group-hover:text-camp-dorado transition-colors">→</span>
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full font-military text-camp-arena/30 hover:text-camp-arena/60 py-2 text-sm transition-colors uppercase tracking-widest"
+        >
+          Cancelar (Esc)
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // ── Modal de evento rápido ───────────────────────────────────────
-const QuickEventModal = ({ type, teams, onClose, onApply }) => {
+const QuickEventModal = ({ type, teams, onClose, onApply, preSelectedTeams = null }) => {
   const isBono = type === 'bono';
-  const [selected, setSelected] = useState([]);
+  const [selected, setSelected] = useState(() => {
+    if (preSelectedTeams === 'all') return teams.map(t => t.id);
+    if (Array.isArray(preSelectedTeams)) return preSelectedTeams;
+    return [];
+  });
   const [amount,   setAmount]   = useState('');
 
   const toggle = id =>
@@ -1060,8 +1136,12 @@ const MisionModal = ({ teams, onClose, onApply }) => {
 };
 
 // ── Modal Ruleta (equipo primero → girar en mapa) ─────────────────
-const RuletaModal = ({ teams, onClose, onApply }) => {
-  const [selected,     setSelected]     = useState([]);
+const RuletaModal = ({ teams, onClose, onApply, preSelectedTeams = null }) => {
+  const [selected,     setSelected]     = useState(() => {
+    if (preSelectedTeams === 'all') return teams.map(t => t.id);
+    if (Array.isArray(preSelectedTeams)) return preSelectedTeams;
+    return [];
+  });
   const [result,       setResult]       = useState(null);
   const [spinning,     setSpinning]     = useState(false);
   const [spinIdx,      setSpinIdx]      = useState(0);
@@ -1211,10 +1291,12 @@ const RuletaModal = ({ teams, onClose, onApply }) => {
 // ── Componente principal ─────────────────────────────────────────
 export const CommandPanel = () => {
   const navigate        = useNavigate();
-  const [auth,        setAuth]       = useState(false);
-  const [teams,       setTeams]      = useState([]);
-  const [alert,       setAlert]      = useState(null);
-  const [eventModal,  setEventModal] = useState(null); // 'bono' | 'emboscada' | 'quiz' | 'decision' | 'mision' | 'ruleta' | null
+  const [auth,             setAuth]            = useState(false);
+  const [teams,            setTeams]           = useState([]);
+  const [alert,            setAlert]           = useState(null);
+  const [eventModal,       setEventModal]      = useState(null); // 'bono' | 'emboscada' | 'quiz' | 'decision' | 'mision' | 'ruleta' | null
+  const [pendingActivity,  setPendingActivity] = useState(null); // 'emboscada' | 'bono' | 'ruleta'
+  const [preSelectedTeams, setPreSelectedTeams] = useState(null); // 'all' | [id] | null
 
   const showAlert = (type, msg) => {
     setAlert({ type, msg });
@@ -1291,22 +1373,49 @@ export const CommandPanel = () => {
     await broadcastEvent(payload, teamUpdates);
   };
 
+  const SORTEABLE = ['quiz', 'decision', 'mision', 'ruleta'];
+
+  const handleSortear = () => {
+    const random = SORTEABLE[Math.floor(Math.random() * SORTEABLE.length)];
+    if (['emboscada', 'bono', 'ruleta'].includes(random)) {
+      setPendingActivity(random);
+    } else {
+      setEventModal(random);
+    }
+  };
+
+  const handleScopeSelect = scope => {
+    const activity = pendingActivity;
+    setPendingActivity(null);
+    setPreSelectedTeams(scope === 'all' ? 'all' : [scope]);
+    setEventModal(activity);
+  };
+
   if (!auth) return <PinScreen onAuth={() => setAuth(true)} />;
 
   return (
     <div className="min-h-screen bg-camp-carbon">
       {alert && <Alert type={alert.type} msg={alert.msg} />}
 
+      {pendingActivity && (
+        <ScopePickerModal
+          activity={pendingActivity}
+          teams={teams}
+          onClose={() => setPendingActivity(null)}
+          onSelect={handleScopeSelect}
+        />
+      )}
+
       {eventModal && ['bono', 'emboscada'].includes(eventModal) && (
         <QuickEventModal
           type={eventModal}
           teams={teams}
-          onClose={() => setEventModal(null)}
+          onClose={() => { setEventModal(null); setPreSelectedTeams(null); }}
           onApply={handleQuickEvent}
+          preSelectedTeams={preSelectedTeams}
         />
       )}
       {eventModal === 'quiz'     && <QuizModal     teams={teams} onClose={() => {
-        // Limpiar pregunta en vivo si el modal se cierra sin aplicar resultado
         const ch = new BroadcastChannel('camp-events');
         ch.postMessage({ type: 'quiz-hide' });
         ch.close();
@@ -1322,8 +1431,8 @@ export const CommandPanel = () => {
       }} onApply={(p, u) => broadcastEvent(p, u)} />}
       {eventModal === 'ruleta'   && <RuletaModal   teams={teams} onClose={() => {
         const ch = new BroadcastChannel('camp-events'); ch.postMessage({ type: 'ruleta-hide' }); ch.close();
-        setEventModal(null);
-      }} onApply={(p, u) => broadcastEvent(p, u)} />}
+        setEventModal(null); setPreSelectedTeams(null);
+      }} onApply={(p, u) => broadcastEvent(p, u)} preSelectedTeams={preSelectedTeams} />}
 
       {/* ── Header ── */}
       <header
@@ -1403,10 +1512,16 @@ export const CommandPanel = () => {
               EVENTOS DEL JUEGO
             </h2>
             <div className="h-px flex-1 bg-camp-arena/10" />
+            <button
+              onClick={handleSortear}
+              className="font-military text-xs tracking-widest uppercase px-3 py-1.5 rounded-sm border border-purple-500/35 text-purple-400/70 hover:text-purple-300 hover:border-purple-500/70 hover:bg-purple-500/08 transition-all"
+            >
+              🎲 Sortear actividad
+            </button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {/* Emboscada — funcional */}
+            {/* Emboscada — abre modal directo (tiene checkboxes internos) */}
             <button
               onClick={() => setEventModal('emboscada')}
               className="group flex flex-col items-center gap-2 py-6 px-3 rounded-sm border border-red-500/35 hover:border-red-500/70 hover:bg-red-500/08 transition-all"
@@ -1418,7 +1533,7 @@ export const CommandPanel = () => {
               </p>
             </button>
 
-            {/* Bono de Honor — funcional */}
+            {/* Bono de Honor — abre modal directo (tiene checkboxes internos) */}
             <button
               onClick={() => setEventModal('bono')}
               className="group flex flex-col items-center gap-2 py-6 px-3 rounded-sm border border-camp-dorado/40 hover:border-camp-dorado hover:bg-camp-dorado/08 transition-all"
@@ -1430,7 +1545,6 @@ export const CommandPanel = () => {
               </p>
             </button>
 
-            {/* Próximamente — Parte 5 */}
             {[
               { emoji: '❓', label: 'QUIZ',     desc: 'Preguntas con tiempo', key: 'quiz',     color: 'rgba(96,165,250,0.35)',  hoverBg: 'rgba(96,165,250,0.08)',  text: '#60a5fa' },
               { emoji: '⚔️', label: 'DECISIÓN', desc: 'Dilemas de equipo',   key: 'decision', color: 'rgba(245,158,11,0.35)', hoverBg: 'rgba(245,158,11,0.08)', text: '#f59e0b' },
@@ -1439,7 +1553,7 @@ export const CommandPanel = () => {
             ].map(ev => (
               <button
                 key={ev.label}
-                onClick={() => setEventModal(ev.key)}
+                onClick={() => ev.key === 'ruleta' ? setPendingActivity('ruleta') : setEventModal(ev.key)}
                 className="group flex flex-col items-center gap-2 py-6 px-3 rounded-sm border transition-all"
                 style={{ borderColor: ev.color }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = ev.hoverBg}
@@ -1453,7 +1567,7 @@ export const CommandPanel = () => {
           </div>
 
           <p className="font-military text-camp-arena/20 text-xs tracking-widest text-center mt-5 uppercase">
-            6 eventos activos — Actualiza el mapa en tiempo real
+            6 eventos activos — Ruleta pide alcance antes de abrir · Sortear elige entre Quiz, Decisión, Misión y Ruleta
           </p>
         </section>
 
