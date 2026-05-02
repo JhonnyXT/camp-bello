@@ -23,9 +23,14 @@ class Server {
         try {
             await db.authenticate();
             console.log('Connection has been established successfully.');
-            // Sincroniza el schema (agrega columnas nuevas sin borrar datos)
-            await db.sync({ alter: true });
-            console.log('Schema sincronizado.');
+            // alter:true solo en desarrollo — en producción es peligroso (puede bloquear tablas)
+            if (process.env.NODE_ENV !== 'production') {
+                await db.sync({ alter: true });
+                console.log('Schema sincronizado (alter).');
+            } else {
+                await db.sync();
+                console.log('Schema sincronizado.');
+            }
         } catch (error) {
             console.error('Unable to connect to the database:', error);
         }
