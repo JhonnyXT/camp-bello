@@ -10,92 +10,76 @@ alwaysApply: false
 - Componentes de página/vista (pantallas completas) → `frontend/src/components/`
 - **Nunca** crear componentes en la raíz `frontend/src/`
 
-## Plantilla base para componente UI
+## Rutas de la aplicación
+
+Las rutas **fullscreen** (sin Layout) van directamente en el router de `App.jsx`:
 
 ```jsx
-// frontend/src/components/ui/NombreComponente.jsx
+// Pantallas fullscreen — paleta camp-* oscura
+{ path: '/',          element: <Landing /> }
+{ path: '/seleccion', element: <SoldierSelection /> }
+{ path: '/mapa',      element: <CampaignMap /> }
+{ path: '/comando',   element: <CommandPanel /> }
 
-const variants = {
-  primary: 'bg-primary-600 hover:bg-primary-700 text-white',
-  secondary: 'bg-secondary-600 hover:bg-secondary-700 text-white',
-  outline: 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950',
-};
+// Pantallas con Layout (rutas legacy — paleta gray/primary)
+{ path: '/admin', element: <Home /> }
+{ path: '/vault', element: <CashCounter /> }
+```
 
-const sizes = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-base',
-  lg: 'px-6 py-3 text-lg',
-};
+Para agregar una ruta nueva: editar `frontend/src/App.jsx` y actualizar `frontend/AGENTS.md`.
 
-export const NombreComponente = ({
-  variant = 'primary',
-  size = 'md',
-  className = '',
-  children,
-  ...props
-}) => {
+## Paleta de colores — usar siempre tokens camp-*
+
+Las pantallas fullscreen usan la paleta `camp-*` definida en `tailwind.config.js`.
+**Nunca** usar colores Tailwind directos como `sky-`, `slate-`, `amber-` para componentes nuevos en pantallas del juego.
+
+```jsx
+// Tokens camp disponibles:
+bg-camp-carbon      // fondo principal oscuro
+text-camp-hueso     // texto primario
+text-camp-arena     // texto secundario / subtítulos
+text-camp-dorado    // acentos dorados / Estrategia
+text-camp-rojo      // peligro / Guerrero / Emboscada
+text-camp-verde     // éxito / Guardián
+
+// Tipografías:
+font-display        // Bebas Neue — títulos en mayúsculas
+font-military       // Barlow Condensed — UI del juego
+font-body           // Inter — formularios y contenido
+```
+
+## Plantilla base para componente de pantalla (fullscreen)
+
+```jsx
+// frontend/src/components/NuevaPantalla.jsx
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+export const NuevaPantalla = () => {
+  const navigate = useNavigate();
+  const [data, setData] = useState([]);
+  const [alert, setAlert] = useState(null);
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/teams`);
+        setData(data);
+      } catch {
+        setAlert({ type: 'error', msg: 'Error al cargar datos' });
+      }
+    };
+    fetch();
+  }, []);
+
   return (
-    <div
-      className={`${variants[variant]} ${sizes[size]} rounded-lg transition-colors ${className}`}
-      {...props}
-    >
-      {children}
+    <div className="min-h-screen bg-camp-carbon text-camp-hueso">
+      {alert && <Alert type={alert.type} msg={alert.msg} />}
+      {/* contenido */}
     </div>
   );
 };
-```
-
-## Dark mode — obligatorio en componentes nuevos
-
-```jsx
-// Fondos
-bg-white dark:bg-gray-800          // superficie principal
-bg-gray-50 dark:bg-gray-900        // fondo de página
-bg-gray-100 dark:bg-gray-700       // superficie secundaria
-
-// Textos
-text-gray-900 dark:text-gray-100   // texto principal
-text-gray-600 dark:text-gray-400   // texto secundario
-text-gray-500 dark:text-gray-500   // texto terciario
-
-// Bordes
-border-gray-200 dark:border-gray-700
-```
-
-## Animaciones — usar las definidas en tailwind.config.js
-
-```jsx
-<div className="animate-fade-in">   // fadeIn 0.3s ease-in-out — para apariciones
-<div className="animate-slide-in">  // slideIn 0.3s ease-in-out — para deslizamientos
-```
-
-Para animaciones de valores (ej. barras de porcentaje) usar `@react-spring/web`:
-```jsx
-import { useSpring, animated } from '@react-spring/web';
-const springProps = useSpring({ width: `${value}%`, from: { width: '0%' }, config: { duration: 3000 } });
-<animated.div style={springProps} />
-```
-
-## Modales — usar el wrapper existente
-
-**Nunca crear un nuevo wrapper de modal.** Usar `Modal.jsx` con la prop `content`:
-
-```jsx
-import Modal from './Modal';
-
-// Estado en el componente padre
-const [modal, setModal] = useState(false);
-
-// Apertura
-<Button onClick={() => setModal(true)}>Abrir</Button>
-
-// Modal
-<Modal
-  modal={modal}
-  setModal={setModal}
-  label="Título del modal"
-  content={<MiFormulario onClose={() => setModal(false)} />}
-/>
 ```
 
 ## Notificaciones — usar Alert.jsx
@@ -103,50 +87,76 @@ const [modal, setModal] = useState(false);
 ```jsx
 import Alert from './Alert';
 
-const [alert, setAlert] = useState({ show: false, message: '', type: 'success' });
+// Estado (null = sin alerta)
+const [alert, setAlert] = useState(null);
 
-// Disparar notificación
-setAlert({ show: true, message: 'Operación exitosa', type: 'success' });
-setAlert({ show: true, message: 'Ocurrió un error', type: 'error' });
+// Disparar
+setAlert({ type: 'success', msg: 'Operación exitosa' });
+setAlert({ type: 'error',   msg: 'Ocurrió un error' });
+setAlert({ type: 'warning', msg: 'Atención' });
 
-// En el JSX (dentro del return)
-{alert.show && <Alert alert={alert} setAlert={setAlert} />}
+// En el JSX — Alert se posiciona fixed, no requiere contenedor
+{alert && <Alert type={alert.type} msg={alert.msg} />}
 ```
 
-## Navegación
+> La API real de Alert.jsx acepta `type` y `msg` como props directas.
+> **No** usar `alert={alert}` ni `setAlert={setAlert}` — esa API no existe.
+
+## Llamadas a la API
+
+La URL base viene de la variable de entorno `VITE_API_URL`:
 
 ```jsx
-import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+const API = import.meta.env.VITE_API_URL;
 
-const navigate = useNavigate();
-const location = useLocation();
+const handleAction = async () => {
+  try {
+    const { data } = await axios.post(`${API}/api/teams`, payload);
+    setAlert({ type: 'success', msg: data.msg });
+  } catch {
+    setAlert({ type: 'error', msg: 'Error en la operación' });
+  }
+};
+```
 
-// Ir a una ruta
-navigate('/vault');
+## Animaciones — usar las definidas en tailwind.config.js
 
-// Saber si una ruta está activa (para nav items)
-const isActive = location.pathname === '/vault';
+```jsx
+<div className="animate-fade-in">      // fadeIn 0.3s
+<div className="animate-slide-in">     // slideInUp 0.4s
+<div className="animate-zoom-in">      // zoomIn 0.3s
+<div className="animate-pulse-slow">   // pulse 3s
+<div className="animate-shake">        // shake 0.5s (Emboscada)
+<div className="animate-glow">         // glow 0.5s (Bono)
+<div className="animate-march">        // march 1s (emojis de soldados)
+```
+
+## Exports — siempre named exports
+
+```jsx
+// ✅ Correcto
+export const MiComponente = () => { ... }
+
+// ❌ Incorrecto — no usar export default en componentes nuevos
+export default MiComponente;
+```
+
+## Estilos inline — excepción para valores dinámicos
+
+Las reglas del proyecto prohíben CSS inline pero hacen excepción para valores que
+**no pueden expresarse como clases Tailwind** (colores de equipo dinámicos, delays calculados):
+
+```jsx
+// ✅ Excepción válida — valor dinámico que no existe como clase Tailwind
+<div style={{ backgroundColor: team.color }} />
+<span style={{ animationDelay: `${index * 0.2}s` }} />
+
+// ❌ No válido — esto tiene clase Tailwind equivalente
+<div style={{ fontSize: '1rem' }} />
 ```
 
 ## Estado local — sin librería global
 
 No introducir Redux, Zustand ni Context API sin petición explícita.
 Todo el estado se maneja con `useState` y se pasa como props.
-
-## Llamadas a la API — patrón con Axios
-
-```jsx
-import axios from 'axios';
-
-// URL base (hardcodeada actualmente — usar skill setup-env-vars para migrar)
-const API_URL = 'http://localhost:8080';
-
-const handleAction = async () => {
-  try {
-    const { data } = await axios.post(`${API_URL}/api/teams`, payload);
-    setAlert({ show: true, message: data.msg, type: 'success' });
-  } catch (error) {
-    setAlert({ show: true, message: 'Error en la operación', type: 'error' });
-  }
-};
-```

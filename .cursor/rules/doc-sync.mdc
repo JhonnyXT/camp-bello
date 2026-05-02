@@ -1,0 +1,36 @@
+---
+description: "Protocolo obligatorio de sincronización de documentación. Aplica después de cualquier cambio de código."
+alwaysApply: true
+---
+
+## Protocolo de actualización de documentación
+
+Después de cualquier cambio que afecte las áreas listadas abajo, **debes actualizar el AGENTS.md del directorio más cercano al archivo modificado** antes de considerar la tarea terminada.
+
+### Qué dispara una actualización de docs
+
+| Tipo de cambio | AGENTS.md a actualizar |
+|---|---|
+| Nueva ruta en `App.jsx` | `frontend/AGENTS.md` — sección "Rutas y componentes" |
+| Nuevo componente en `components/` | `frontend/AGENTS.md` — sección de componentes o sistema de diseño |
+| Nuevo endpoint en `routes/` o `controllers/` | `api/AGENTS.md` — sección "Endpoints disponibles" |
+| Campo nuevo en un modelo Sequelize | `api/AGENTS.md` — sección "Modelo Team" |
+| Nueva zona, arquetipo o constante de juego | `AGENTS.md` (raíz) — sección "Sistema de juego" |
+| Nuevo evento del juego (en CommandPanel o CampaignMap) | `AGENTS.md` (raíz) — sección "Eventos del juego" |
+| Cambio en variables de entorno | `AGENTS.md` (raíz) — sección "Variables de entorno" |
+| Nueva utilidad en `utils/` | `frontend/AGENTS.md` — sección "Sistema de constantes y utilidades" |
+| Cambio en el flujo de audio | `frontend/AGENTS.md` — subsección audio |
+| Deuda técnica resuelta | `AGENTS.md` (raíz) — sección "Deuda técnica conocida" (marcar como completada o eliminar) |
+
+### Cómo actualizar
+
+1. Lee el AGENTS.md correspondiente.
+2. Actualiza **solo la sección relevante** — no reescribas todo el archivo.
+3. Mantén el mismo estilo: tablas para endpoints/rutas, bloques de código para ejemplos, listas para gotchas.
+4. Si el cambio también afecta el `README.md`, actualiza la sección correspondiente.
+
+### Qué NO dispara una actualización de docs
+
+- Correcciones de bugs menores sin cambios de interfaz pública
+- Cambios de estilos puramente visuales (clases Tailwind)
+- Refactoring interno sin cambios de API/props/comportamiento observable

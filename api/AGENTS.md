@@ -1,40 +1,41 @@
 # AGENTS.md — API Backend (Express + Sequelize + MySQL)
 
-Backend REST para la app Codigo Camp. Gestiona equipos con nombre, color y puntuación.
+Backend REST para Camp Bello · Campaña del Soldado.
+Para el contexto completo del juego ver `../AGENTS.md`.
 
 ---
 
 ## Arranque
 
 ```bash
-# Desde la carpeta api/
-node app.js                # producción / uso normal
-npx nodemon app.js         # desarrollo con hot-reload (nodemon instalado, sin script)
+cd api
+node app.js                # Producción / uso normal — http://localhost:8080
+npx nodemon app.js         # Desarrollo con hot-reload
 ```
 
-Puerto: **8080** (definido en `models/server.js`).
+Puerto definido en `.env` como `PORT` (default 8080).
 
 ---
 
 ## Arquitectura: flujo obligatorio
 
-Toda nueva funcionalidad sigue este flujo sin excepción:
+Todo nuevo recurso sigue este flujo sin excepción:
 
 ```
 app.js
   └── models/server.js (Clase Server)
-        ├── database/config.js  ← conexión Sequelize
-        ├── routes/             ← define qué método HTTP va a qué función
-        └── controllers/        ← implementa la lógica de negocio
-              └── models/       ← define las tablas/entidades con Sequelize
+        ├── database/config.js  ← conexión Sequelize (lee .env)
+        ├── routes/             ← define método HTTP → función
+        └── controllers/        ← implementa la lógica
+              └── models/       ← define las tablas con Sequelize
 ```
 
-### Cómo agregar un nuevo recurso (ejemplo: `players`)
+### Cómo agregar un nuevo recurso
 
 1. Crear modelo: `api/models/player.js`
 2. Crear controlador: `api/controllers/player.controller.js`
-3. Crear archivo de rutas: `api/routes/players.js`
-4. Registrar el router en el constructor de `Server` (`models/server.js`):
+3. Crear rutas: `api/routes/players.js`
+4. Registrar en `models/server.js`:
    ```js
    this.playersPath = '/api/players';
    // en routes():
@@ -45,102 +46,150 @@ app.js
 
 ## Conexión a la base de datos
 
-Archivo: `api/database/config.js`
-
 ```js
-// Configuración actual (hardcodeada — pendiente migrar a .env)
-const db = new Sequelize('campBello-bd', 'root', '123456789', {
-    host: 'localhost',
-    dialect: 'mysql',
-});
+// api/database/config.js — lee de process.env (cargado desde api/.env)
+const db = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASS,
+  { host: process.env.DB_HOST, dialect: 'mysql' }
+);
 ```
 
-- Dialecto: MySQL
-- BD: `campBello-bd`
-- La sincronización con la BD ocurre automáticamente al iniciar el servidor
-  mediante `db.sync()` en la clase `Server`
+Al iniciar el servidor se llama `db.sync({ alter: true })` — actualiza la estructura
+de tablas automáticamente si el modelo cambia.
 
 ---
 
-## Modelo Sequelize de referencia (Team)
+## Endpoints disponibles
+
+### `GET /api/teams`
+Lista todos los equipos.
+```json
+// Respuesta:
+[
+  { "id": 1, "name": "Rojo", "cash": "2500", "color": "#ef4444", "soldierType": "estratega" },
+  ...
+]
+```
+
+### `GET /api/teams/rank`
+Lista equipos con campo `percent` calculado (porcentaje respecto al líder).
+Usado por `/vault` (CashCounter.jsx legacy).
+```json
+[
+  { "id": 1, "name": "Rojo", "cash": "2500", "color": "#ef4444", "soldierType": "estratega", "percent": "100" },
+  ...
+]
+```
+
+### `POST /api/teams`
+Crea un equipo.
+```json
+// Body:
+{ "name": "Verde", "cash": 0, "color": "#22c55e" }
+
+// Respuesta:
+{ "msg": "Equipo creado exitosamente", "user": { "id": 5, ... } }
+```
+
+### `PUT /api/teams/:id`
+Actualiza uno o más campos del equipo. Todos los campos son opcionales.
+```json
+// Body (cualquier combinación):
+{ "cash": 1500 }
+{ "name": "Nuevo nombre" }
+{ "color": "#3b82f6", "cash": 800 }
+
+// Respuesta:
+{ "msg": "Equipo actualizado" }
+```
+
+### `PUT /api/teams/:id/soldier`
+Asigna el arquetipo de soldado al equipo.
+Los valores válidos son: `'guerrero'` | `'estratega'` | `'guardian'` | `'explorador'` | `null`.
+```json
+// Body:
+{ "soldierType": "guerrero" }
+
+// Respuesta:
+{ "msg": "Soldado actualizado", "soldierType": "guerrero" }
+```
+
+---
+
+## Modelo Team
 
 ```js
-// api/models/team.js — usar como plantilla para nuevos modelos
-const { DataTypes } = require('sequelize');
-const db = require('../database/config');
-
+// api/models/team.js
 const Team = db.define('Team', {
-    name:  { type: DataTypes.STRING },
-    cash:  { type: DataTypes.DECIMAL(20, 0) },
-    color: { type: DataTypes.STRING },
+  name:        { type: DataTypes.STRING },
+  cash:        { type: DataTypes.DECIMAL(20, 0) },
+  color:       { type: DataTypes.STRING },
+  soldierType: { type: DataTypes.STRING, allowNull: true, defaultValue: null },
 }, { timestamps: false });  // ← SIEMPRE false en este proyecto
-
-module.exports = Team;
 ```
-
-**Tipos de datos disponibles en Sequelize:**
-- `DataTypes.STRING` — texto corto (VARCHAR 255)
-- `DataTypes.TEXT` — texto largo
-- `DataTypes.INTEGER` — entero
-- `DataTypes.DECIMAL(20, 0)` — decimal (usado para puntuaciones)
-- `DataTypes.BOOLEAN` — booleano
-- `DataTypes.DATE` — fecha/hora
 
 ---
 
-## Controlador de referencia (team.controller.js)
+## Patrón de controlador
 
 ```js
 // Patrón obligatorio: async + try/catch + respuesta JSON estructurada
-const getTeams = async (req, res) => {
-    try {
-        const teams = await Team.findAll();
-        res.json(teams);
-    } catch (error) {
-        res.status(500).json({ msg: 'Error al obtener equipos', error });
-    }
-};
-
 const createTeam = async (req, res) => {
-    try {
-        const { name, cash, color } = req.body;
-        // Validación mínima antes de usar req.body
-        if (!name || cash === undefined || !color) {
-            return res.status(400).json({ msg: 'Faltan campos requeridos: name, cash, color' });
-        }
-        const user = await Team.create({ name, cash, color });
-        res.json({ msg: 'Equipo creado exitosamente', user });
-    } catch (error) {
-        res.status(500).json({ msg: 'Error al crear equipo', error });
+  try {
+    const { name, cash, color } = req.body;
+    if (!name || cash === undefined || !color) {
+      return res.status(400).json({ msg: 'Faltan campos: name, cash, color' });
     }
+    const user = await Team.create({ name, cash, color });
+    res.json({ msg: 'Equipo creado exitosamente', user });
+  } catch (error) {
+    res.status(500).json({ msg: 'Error al crear equipo', error: error.message });
+  }
 };
 ```
 
 ---
 
-## Middlewares configurados en server.js
+## Middlewares activos (no duplicar)
 
-Ya están activos — no duplicar:
 - `cors()` — CORS abierto (acepta cualquier origen)
-- `express.json()` — parseo del body en JSON
-- `express.static("public")` — sirve archivos estáticos desde `api/public/`
+- `express.json()` — parseo de body JSON
+- `express.static("public")` — archivos estáticos desde `api/public/`
+
+---
+
+## Variables de entorno (`api/.env`)
+
+```
+PORT=8080
+DB_NAME=campBello-bd
+DB_USER=root
+DB_PASS=123456789
+DB_HOST=localhost
+```
 
 ---
 
 ## Gotchas del backend
 
-- `timestamps: false` es **obligatorio** en todos los modelos — la tabla MySQL no tiene
-  columnas `createdAt`/`updatedAt` y Sequelize lanzará error si se omite.
+- `timestamps: false` es **obligatorio** en todos los modelos — la tabla no tiene
+  columnas `createdAt`/`updatedAt`.
 
-- Las credenciales de MySQL están hardcodeadas en `database/config.js`. Si necesitas
-  cambiarlas usa la skill `setup-env-vars`.
+- `db.sync({ alter: true })` actualiza la tabla al reiniciar. Si cambias tipos de
+  columna en producción puede fallar — hacer backup primero.
 
-- `sqlite3` está instalado en `package.json` pero no se usa — la BD activa es MySQL.
+- No hay autenticación. Todos los endpoints son públicos.
 
-- No hay middleware de autenticación. La API acepta todas las peticiones.
+- No hay validación de inputs con librería (sin Joi ni Zod). Valida con `if (!campo)`.
 
-- No hay validación de inputs con librería (sin Joi, sin Zod). Valida manualmente
-  antes de usar `req.body`.
+- CORS abierto con `cors()`. Para restringir:
+  ```js
+  cors({ origin: process.env.ALLOWED_ORIGIN || 'http://localhost:5173' })
+  ```
 
-- CORS está configurado con `cors()` sin restricciones — acepta cualquier origen.
-  Para restringirlo: `cors({ origin: 'http://localhost:5173' })`.
+- `sqlite3` instalado en `package.json` pero no se usa. Desinstalar con:
+  ```bash
+  npm uninstall sqlite3
+  ```

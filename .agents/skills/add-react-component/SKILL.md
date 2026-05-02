@@ -16,7 +16,9 @@ description: Crea un nuevo componente React para Codigo Camp siguiendo el sistem
 - Nuevos componentes UI (reutilizables) van en `frontend/src/components/ui/`
 - Nuevas páginas/vistas completas van en `frontend/src/components/`
 - Todo el código es JavaScript — NO usar TypeScript ni agregar tipos
-- **Siempre** incluir soporte dark mode con variantes `dark:`
+- Las pantallas fullscreen (`/`, `/seleccion`, `/mapa`, `/comando`) usan la paleta `camp-*` oscura — **no** usan el `<Layout>` ni su paleta `gray/primary`
+- El patrón de Alert usa `type` y `msg` como props directas — no `alert={alert}` ni `setAlert`
+- La URL de la API viene de `import.meta.env.VITE_API_URL` — no hardcodear `localhost:8080`
 
 ## Instructions
 
@@ -25,126 +27,128 @@ description: Crea un nuevo componente React para Codigo Camp siguiendo el sistem
 Determina si es:
 - **Componente UI reutilizable** (Button, Card, Badge, Input, Dropdown, etc.)
   → Crear en `frontend/src/components/ui/NombreComponente.jsx`
-- **Vista o página** (pantalla completa con lógica propia)
-  → Crear en `frontend/src/components/NombreVista.jsx` y registrar en `App.jsx`
+- **Vista fullscreen del juego** (pantalla completa con tema `camp-*`)
+  → Crear en `frontend/src/components/NombreVista.jsx` y registrar en `App.jsx` **directamente** (sin `<Layout>`)
+- **Vista legacy con Layout** (panel administrativo con paleta `gray/primary`)
+  → Crear en `frontend/src/components/NombreVista.jsx` y registrar como hijo de `<Layout>` en `App.jsx`
 
-### Paso 2 — Usar la plantilla del sistema de diseño
+### Paso 2 — Plantilla base para pantalla fullscreen del juego
 
 ```jsx
-// frontend/src/components/ui/NombreComponente.jsx
+// frontend/src/components/NuevaPantalla.jsx
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Alert from './Alert';
 
-// Objetos de variantes para clases Tailwind
-const variants = {
-  primary: 'bg-primary-600 hover:bg-primary-700 text-white',
-  secondary: 'bg-secondary-600 hover:bg-secondary-700 text-white',
-  outline: 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950',
-  ghost: 'text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/20',
-};
+export const NuevaPantalla = () => {
+  const navigate = useNavigate();
+  const [data,  setData]  = useState([]);
+  const [alert, setAlert] = useState(null);
 
-const sizes = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-base',
-  lg: 'px-6 py-3 text-lg',
-};
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/teams`);
+        setData(data);
+      } catch {
+        setAlert({ type: 'error', msg: 'Error al cargar datos' });
+      }
+    };
+    fetch();
+  }, []);
 
-export const NombreComponente = ({
-  variant = 'primary',
-  size = 'md',
-  className = '',
-  children,
-  ...props
-}) => {
   return (
-    <div
-      className={`
-        ${variants[variant]}
-        ${sizes[size]}
-        rounded-lg transition-colors duration-200
-        bg-white dark:bg-gray-800
-        text-gray-900 dark:text-gray-100
-        border border-gray-200 dark:border-gray-700
-        ${className}
-      `}
-      {...props}
-    >
-      {children}
+    <div className="min-h-screen bg-camp-carbon text-camp-hueso">
+      {alert && <Alert type={alert.type} msg={alert.msg} />}
+      {/* contenido */}
     </div>
   );
 };
 ```
 
-### Paso 3 — Colores del sistema (obligatorio)
+### Paso 3 — Colores del sistema
 
-Usar siempre la paleta del proyecto, nunca colores Tailwind directos:
+Las pantallas del juego usan la paleta `camp-*`. Las páginas del Layout usan `primary-*`.
 
 ```
-✅ Correcto:  primary-600, primary-700, secondary-500
-❌ Incorrecto: sky-600, slate-500, blue-700
+Pantallas del juego (camp-*):
+  bg-camp-carbon       → fondo principal
+  text-camp-hueso      → texto primario
+  text-camp-arena      → texto secundario
+  text-camp-dorado     → acentos dorados
+  text-camp-rojo       → peligro / error
+  text-camp-verde      → éxito / positivo
+  primary-{50..900}    → acciones / Explorador
+
+Páginas del Layout:
+  primary-{50..900}    → acciones principales
+  secondary-{50..900}  → textos secundarios
 ```
 
-Referencia de colores del proyecto (tailwind.config.js):
-- `primary-500` → azul cielo (#0ea5e9)
-- `primary-600` → azul cielo oscuro
-- `secondary-500` → slate gris
+### Paso 4 — Dark mode (solo para componentes del Layout)
 
-### Paso 4 — Dark mode en cada elemento
+Las pantallas fullscreen del juego no requieren dark mode (son siempre oscuras).
+Solo las vistas bajo `<Layout>` lo necesitan:
 
-Checklist para cada elemento nuevo:
-- [ ] Fondo: `bg-white dark:bg-gray-800` (o variante correspondiente)
-- [ ] Texto: `text-gray-900 dark:text-gray-100`
-- [ ] Bordes: `border-gray-200 dark:border-gray-700`
-- [ ] Hover/foco: incluir variantes `dark:hover:` cuando aplique
+```jsx
+bg-white dark:bg-gray-800    // superficie principal
+text-gray-900 dark:text-gray-100
+border-gray-200 dark:border-gray-700
+```
 
 ### Paso 5 — Animaciones disponibles
 
 ```jsx
-// Animaciones CSS de Tailwind (tailwind.config.js)
-<div className="animate-fade-in">   // fadeIn 0.3s — para apariciones
-<div className="animate-slide-in">  // slideIn 0.3s — para deslizamientos
-
-// Para animaciones de valores numéricos usar @react-spring/web
-import { useSpring, animated } from '@react-spring/web';
+<div className="animate-fade-in">      // fadeIn 0.3s
+<div className="animate-slide-in">     // slideInUp 0.4s
+<div className="animate-zoom-in">      // zoomIn 0.3s
+<div className="animate-pulse-slow">   // pulse 3s
+<div className="animate-shake">        // shake 0.5s
+<div className="animate-glow">         // glow 0.5s
+<div className="animate-march">        // march 1s (emojis de soldados)
 ```
 
-### Paso 6 — Si es una nueva vista/ruta
+### Paso 6 — Si es una nueva vista fullscreen
 
-Registrar en `frontend/src/App.jsx`:
+Registrar en `frontend/src/App.jsx` **fuera** del bloque con `element: <Layout />`:
+
 ```jsx
-import NuevaVista from "./components/NuevaVista";
-
-// Agregar dentro del array de createBrowserRouter:
-{
-  path: "nueva-ruta",
-  element: <NuevaVista />,
-},
+// En createBrowserRouter — pantallas fullscreen SIN Layout:
+{ path: '/nueva-ruta', element: <NuevaPantalla /> },
 ```
 
-Agregar al nav en `Layout.jsx`:
-```jsx
-const navItems = [
-  { path: '/', label: 'Home' },
-  { path: '/vault', label: 'Vault' },
-  { path: '/nueva-ruta', label: 'Nueva Sección' }, // ← agregar aquí
-];
-```
+Actualizar `frontend/AGENTS.md` sección "Rutas y componentes".
 
-### Paso 7 — Si el componente necesita llamadas a la API
+### Paso 7 — Si necesita llamadas a la API
 
 ```jsx
 import axios from 'axios';
-import Alert from '../Alert'; // o ajustar la ruta relativa
+import Alert from './Alert'; // ajustar ruta relativa
 
-const [alert, setAlert] = useState({ show: false, message: '', type: 'success' });
+const [alert, setAlert] = useState(null);
 
 const fetchData = async () => {
   try {
-    const { data } = await axios.get('http://localhost:8080/api/teams');
+    const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/teams`);
     setData(data);
-  } catch (error) {
-    setAlert({ show: true, message: 'Error al cargar datos', type: 'error' });
+  } catch {
+    setAlert({ type: 'error', msg: 'Error al cargar datos' });
   }
 };
 
 // En el JSX:
-{alert.show && <Alert alert={alert} setAlert={setAlert} />}
+{alert && <Alert type={alert.type} msg={alert.msg} />}
+```
+
+### Paso 8 — Exports
+
+Siempre usar **named exports**:
+
+```jsx
+// ✅ Correcto
+export const MiComponente = () => { ... }
+
+// ❌ Incorrecto
+export default MiComponente;
 ```
