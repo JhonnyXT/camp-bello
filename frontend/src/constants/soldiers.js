@@ -23,7 +23,7 @@ export const SOLDIERS = [
   },
   {
     id: 'estratega',
-    name: 'ESTRATEGA',
+    name: 'ESTRATEGIA',
     emoji: '🧠',
     tagline: 'Mente táctica. Un paso adelante.',
     description: 'Planifica cada movimiento. La sabiduría es el arma más poderosa.',

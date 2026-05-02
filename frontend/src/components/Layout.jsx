@@ -1,11 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { toggleMute } from '../utils/audio';
+import { toggleMute, isPlaying } from '../utils/audio';
 
-const Layout = () => {
+export const Layout = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
+  const [audioActive, setAudioActive] = useState(false);
   const location = useLocation();
+
+  // Reacciona a cambios en el estado del audio (play/pause/mute)
+  useEffect(() => {
+    const check = () => setAudioActive(isPlaying());
+    const interval = setInterval(check, 1000);
+    check();
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -36,7 +45,7 @@ const Layout = () => {
               </span>
             </Link>
             <div className="flex items-center space-x-2">
-              {window.__campAudio && (
+              {audioActive && (
                 <button
                   onClick={toggleAudio}
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg"
@@ -87,4 +96,4 @@ const Layout = () => {
   );
 };
 
-export default Layout; 
+export default Layout;

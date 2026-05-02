@@ -16,13 +16,19 @@ const AudioToggle = () => {
 
   useEffect(() => {
     const audio   = getAudio();
-    const onPlay  = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-    audio.addEventListener('play',  onPlay);
-    audio.addEventListener('pause', onPause);
+    const onPlay        = () => setPlaying(true);
+    const onPause       = () => setPlaying(false);
+    const onVolumeChange = () => setMuted(audio.muted);
+    audio.addEventListener('play',         onPlay);
+    audio.addEventListener('pause',        onPause);
+    audio.addEventListener('volumechange', onVolumeChange);
+    // Sincronizar estado inicial
+    setPlaying(!audio.paused);
+    setMuted(audio.muted);
     return () => {
-      audio.removeEventListener('play',  onPlay);
-      audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('play',         onPlay);
+      audio.removeEventListener('pause',        onPause);
+      audio.removeEventListener('volumechange', onVolumeChange);
     };
   }, []);
 

@@ -67,3 +67,32 @@ export const getProgressPct = (cash, maxCash) => {
  */
 export const formatPoints = (cash) =>
   Number(cash).toLocaleString('es-CO');
+
+/**
+ * Retorna la info del passivo relevante de un equipo para un tipo de evento.
+ * Usada para mostrar badges en la UI de los modales.
+ *
+ * @param {object} team      - Objeto equipo (con soldierType)
+ * @param {string} eventType - 'quiz' | 'mision-fisica' | 'penalizacion' | 'ruleta'
+ * @returns {{ label, color, emoji, desc } | null}
+ */
+export const getPassiveInfo = (team, eventType) => {
+  const soldier = SOLDIERS_MAP[team.soldierType];
+  if (!soldier) return null;
+  switch (soldier.id) {
+    case 'guerrero':
+      return eventType === 'mision-fisica'
+        ? { label: '+10%', color: '#f87171', emoji: '⚔️', desc: 'Bono físico' } : null;
+    case 'estratega':
+      return eventType === 'quiz'
+        ? { label: '2ª opc.', color: '#C8922A', emoji: '🧠', desc: 'Segunda oportunidad' } : null;
+    case 'guardian':
+      return eventType === 'penalizacion'
+        ? { label: '-15% penal.', color: '#4ade80', emoji: '🛡️', desc: 'Absorbe el 15%' } : null;
+    case 'explorador':
+      return eventType === 'ruleta'
+        ? { label: 'relanzar', color: '#38bdf8', emoji: '🗺️', desc: 'Puede relanzar' } : null;
+    default:
+      return null;
+  }
+};

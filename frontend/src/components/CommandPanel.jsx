@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Alert from './Alert';
@@ -299,7 +299,8 @@ const QuizModal = ({ teams, onClose, onApply }) => {
   const [questions,  setQuestions]  = useState(() => getQuestions());
   const [editing,    setEditing]    = useState(null);
   const [activeQ,    setActiveQ]    = useState(null);
-  const [teamStatus, setTeamStatus] = useState({});
+  const [teamStatus,     setTeamStatus]     = useState({});
+  const [retryAvailable, setRetryAvailable] = useState({});
 
   // Campos del formulario
   const [fText,    setFText]    = useState('');
@@ -342,6 +343,7 @@ const QuizModal = ({ teams, onClose, onApply }) => {
   const handleLaunch = q => {
     setActiveQ(q);
     setTeamStatus({});
+    setRetryAvailable({});
     onApply({ type: 'quiz-show', question: q, _silent: true }, []);
     setView('active');
   };
@@ -351,17 +353,33 @@ const QuizModal = ({ teams, onClose, onApply }) => {
 
   const handleApplyResult = () => {
     if (!activeQ) return;
-    const winners = teams.filter(t => teamStatus[t.id] === 'win');
-    const losers  = teams.filter(t => teamStatus[t.id] === 'lose');
+    const winnersFull = teams.filter(t => teamStatus[t.id] === 'win' && !retryAvailable[t.id]);
+    const winnersHalf = teams.filter(t => teamStatus[t.id] === 'win' &&  retryAvailable[t.id]);
+    const losers      = teams.filter(t => teamStatus[t.id] === 'lose');
+    const passiveAdjustments = [];
+
     const updates = [
-      ...winners.map(t => ({ teamId: t.id, newCash: Math.max(0, +t.cash + activeQ.winPts) })),
-      ...losers.map(t  => ({ teamId: t.id, newCash: Math.max(0, +t.cash - activeQ.losePts) })),
+      ...winnersFull.map(t => ({ teamId: t.id, newCash: Math.max(0, +t.cash + activeQ.winPts) })),
+      ...winnersHalf.map(t => ({ teamId: t.id, newCash: Math.max(0, +t.cash + Math.round(activeQ.winPts / 2)) })),
+      ...losers.map(t => {
+        const penalty  = Math.round(applyPassive(t, 'penalizacion', -activeQ.losePts));
+        if (penalty !== -activeQ.losePts) {
+          const s = SOLDIERS_MAP[t.soldierType];
+          passiveAdjustments.push({ teamId: t.id, teamName: t.name, raw: activeQ.losePts, adjusted: Math.abs(penalty), diff: activeQ.losePts - Math.abs(penalty), soldierName: s?.name ?? '', soldierEmoji: s?.emoji ?? '' });
+        }
+        return { teamId: t.id, newCash: Math.max(0, +t.cash + penalty) };
+      }),
     ];
+
     onApply({
       type:        'quiz-result',
       question:    activeQ,
-      winnerTeams: winners.map(t => ({ ...t, amount: activeQ.winPts })),
-      loserTeams:  losers.map(t  => ({ ...t, amount: activeQ.losePts })),
+      winnerTeams: [
+        ...winnersFull.map(t => ({ ...t, amount: activeQ.winPts })),
+        ...winnersHalf.map(t => ({ ...t, amount: Math.round(activeQ.winPts / 2), retried: true })),
+      ],
+      loserTeams:  losers.map(t => ({ ...t, amount: Math.abs(Math.round(applyPassive(t, 'penalizacion', -activeQ.losePts))) })),
+      passiveAdjustments,
     }, updates);
     onClose();
   };
@@ -549,36 +567,79 @@ const QuizModal = ({ teams, onClose, onApply }) => {
 
             <div className="p-3 rounded-sm border border-blue-500/30 bg-blue-500/05 mb-4">
               <p className="font-military text-sm text-camp-hueso leading-snug">{activeQ.text}</p>
-              <p className="font-military text-xs text-green-400/60 mt-1.5">
-                ✓ Correcta: {correctLabel(activeQ)}
-              </p>
+              <div className="flex items-center gap-2 mt-2 p-2 rounded-sm bg-green-500/10 border border-green-500/30">
+                <span className="text-green-400 text-base">✓</span>
+                <div>
+                  <p className="font-military text-xs text-green-300 font-bold">RESPUESTA CORRECTA: {correctLabel(activeQ)}</p>
+                  <p className="font-military text-[10px] text-camp-arena/40 mt-0.5">Marca ✓ solo a equipos que respondieron esto</p>
+                </div>
+              </div>
             </div>
 
-            <p className="font-military text-camp-arena/40 text-xs tracking-widest mb-2 uppercase">¿Quién acertó?</p>
+            <p className="font-military text-camp-arena/40 text-xs tracking-widest mb-2 uppercase">¿Quién respondió correctamente?</p>
             <div className="grid grid-cols-2 gap-2 mb-5">
-              {teams.map(team => (
-                <div key={team.id}
-                  className="flex items-center gap-1.5 rounded-sm border p-2"
-                  style={{ borderColor: `${team.color}40`, backgroundColor: `${team.color}0a` }}
-                >
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: team.color }} />
-                  <span className="font-military text-xs text-camp-hueso flex-1 truncate">{team.name}</span>
-                  <button
-                    onClick={() => setStatus(team.id, 'win')}
-                    className={`text-xs px-2 py-0.5 rounded-sm border transition-all ${
-                      teamStatus[team.id] === 'win'
-                        ? 'bg-green-500/30 border-green-500/70 text-green-300'
-                        : 'border-camp-arena/20 text-camp-arena/30 hover:border-green-500/40'}`}
-                  >✓</button>
-                  <button
-                    onClick={() => setStatus(team.id, 'lose')}
-                    className={`text-xs px-2 py-0.5 rounded-sm border transition-all ${
-                      teamStatus[team.id] === 'lose'
-                        ? 'bg-red-500/30 border-red-500/70 text-red-300'
-                        : 'border-camp-arena/20 text-camp-arena/30 hover:border-red-500/40'}`}
-                  >✗</button>
-                </div>
-              ))}
+              {teams.map(team => {
+                const soldier  = SOLDIERS_MAP[team.soldierType];
+                const status   = teamStatus[team.id];
+                const isEstra  = soldier?.id === 'estratega';
+                const isGuard  = soldier?.id === 'guardian';
+                const retried  = retryAvailable[team.id];
+                return (
+                  <div key={team.id}
+                    className="flex flex-col gap-1.5 rounded-sm border p-2"
+                    style={{ borderColor: `${team.color}40`, backgroundColor: `${team.color}0a` }}
+                  >
+                    {/* nombre + soldado */}
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: team.color }} />
+                      <span className="font-military text-xs text-camp-hueso flex-1 truncate">{team.name}</span>
+                      {soldier && (
+                        <span className="text-xs" title={soldier.name}>{soldier.emoji}</span>
+                      )}
+                    </div>
+
+                    {/* badge de passivo relevante */}
+                    {isEstra && !retried && (
+                      <p className="font-military text-[10px] text-camp-dorado/70 leading-none">🧠 Tiene 2ª opc.</p>
+                    )}
+                    {isGuard && (
+                      <p className="font-military text-[10px] text-green-400/70 leading-none">🛡️ Reduce −15% si falla</p>
+                    )}
+                    {isEstra && retried && status === 'win' && (
+                      <p className="font-military text-[10px] text-camp-dorado/70 leading-none">🧠 2ª opc. usada · ½ pts</p>
+                    )}
+
+                    {/* botones win/lose */}
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setStatus(team.id, 'win')}
+                        className={`flex-1 text-xs py-0.5 rounded-sm border transition-all ${
+                          status === 'win'
+                            ? 'bg-green-500/30 border-green-500/70 text-green-300'
+                            : 'border-camp-arena/20 text-camp-arena/30 hover:border-green-500/40'}`}
+                      >✓</button>
+                      <button
+                        onClick={() => setStatus(team.id, 'lose')}
+                        className={`flex-1 text-xs py-0.5 rounded-sm border transition-all ${
+                          status === 'lose'
+                            ? 'bg-red-500/30 border-red-500/70 text-red-300'
+                            : 'border-camp-arena/20 text-camp-arena/30 hover:border-red-500/40'}`}
+                      >✗</button>
+                    </div>
+
+                    {/* 2da oportunidad solo para Estrategia cuando fallaron y no usaron retry */}
+                    {isEstra && status === 'lose' && !retried && (
+                      <button
+                        onClick={() => {
+                          setRetryAvailable(prev => ({ ...prev, [team.id]: true }));
+                          setStatus(team.id, null);
+                        }}
+                        className="w-full text-[10px] font-military py-0.5 rounded-sm border border-camp-dorado/50 text-camp-dorado hover:bg-camp-dorado/10 transition-all"
+                      >🧠 2ª oportunidad</button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex gap-2">
@@ -651,11 +712,21 @@ const DecisionModal = ({ teams, onClose, onApply }) => {
     if (!activeD) return;
     const teamsA = teams.filter(t => choice[t.id] === 'A');
     const teamsB = teams.filter(t => choice[t.id] === 'B');
+    const passiveAdjustments = [];
+    const makeUpdate = (team, delta) => {
+      const eventType = delta < 0 ? 'penalizacion' : 'bono';
+      const adjusted  = Math.round(applyPassive(team, eventType, delta));
+      if (adjusted !== delta) {
+        const s = SOLDIERS_MAP[team.soldierType];
+        passiveAdjustments.push({ teamId: team.id, teamName: team.name, raw: Math.abs(delta), adjusted: Math.abs(adjusted), diff: Math.abs(adjusted) - Math.abs(delta), soldierName: s?.name ?? '', soldierEmoji: s?.emoji ?? '' });
+      }
+      return { teamId: team.id, newCash: Math.max(0, +team.cash + adjusted) };
+    };
     const updates = [
-      ...teamsA.map(t => ({ teamId: t.id, newCash: Math.max(0, +t.cash + activeD.optionA.delta) })),
-      ...teamsB.map(t => ({ teamId: t.id, newCash: Math.max(0, +t.cash + activeD.optionB.delta) })),
+      ...teamsA.map(t => makeUpdate(t, activeD.optionA.delta)),
+      ...teamsB.map(t => makeUpdate(t, activeD.optionB.delta)),
     ];
-    onApply({ type: 'decision', dilemma: activeD.dilemma, optionA: activeD.optionA, optionB: activeD.optionB, teamsA, teamsB }, updates);
+    onApply({ type: 'decision', dilemma: activeD.dilemma, optionA: activeD.optionA, optionB: activeD.optionB, teamsA, teamsB, passiveAdjustments }, updates);
     onClose();
   };
 
@@ -740,17 +811,30 @@ const DecisionModal = ({ teams, onClose, onApply }) => {
           </div>
           <p className="font-military text-camp-arena/40 text-xs tracking-widest mb-2 uppercase">Asigna la opción de cada equipo</p>
           <div className="grid grid-cols-2 gap-2 mb-5">
-            {teams.map(team => (
-              <div key={team.id} className="flex items-center gap-1.5 rounded-sm border p-2"
-                style={{ borderColor: `${team.color}40`, backgroundColor: `${team.color}0a` }}>
-                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: team.color }} />
-                <span className="font-military text-xs text-camp-hueso flex-1 truncate">{team.name}</span>
-                <button onClick={() => toggleChoice(team.id, 'A')}
-                  className={`text-xs px-2 py-0.5 rounded-sm border transition-all ${choice[team.id] === 'A' ? 'bg-blue-500/30 border-blue-500/70 text-blue-300' : 'border-camp-arena/20 text-camp-arena/30 hover:border-blue-500/40'}`}>A</button>
-                <button onClick={() => toggleChoice(team.id, 'B')}
-                  className={`text-xs px-2 py-0.5 rounded-sm border transition-all ${choice[team.id] === 'B' ? 'bg-amber-500/30 border-amber-500/70 text-amber-300' : 'border-camp-arena/20 text-camp-arena/30 hover:border-amber-500/40'}`}>B</button>
-              </div>
-            ))}
+            {teams.map(team => {
+              const soldier = SOLDIERS_MAP[team.soldierType];
+              const showGuardian = soldier?.id === 'guardian' &&
+                (activeD?.optionA?.delta < 0 || activeD?.optionB?.delta < 0);
+              return (
+                <div key={team.id} className="flex flex-col gap-1.5 rounded-sm border p-2"
+                  style={{ borderColor: `${team.color}40`, backgroundColor: `${team.color}0a` }}>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: team.color }} />
+                    <span className="font-military text-xs text-camp-hueso flex-1 truncate">{team.name}</span>
+                    {soldier && <span className="text-xs">{soldier.emoji}</span>}
+                  </div>
+                  {showGuardian && (
+                    <p className="font-military text-[10px] text-green-400/70 leading-none">🛡️ -15% en opción negativa</p>
+                  )}
+                  <div className="flex gap-1">
+                    <button onClick={() => toggleChoice(team.id, 'A')}
+                      className={`flex-1 text-xs py-0.5 rounded-sm border transition-all ${choice[team.id] === 'A' ? 'bg-blue-500/30 border-blue-500/70 text-blue-300' : 'border-camp-arena/20 text-camp-arena/30 hover:border-blue-500/40'}`}>A</button>
+                    <button onClick={() => toggleChoice(team.id, 'B')}
+                      className={`flex-1 text-xs py-0.5 rounded-sm border transition-all ${choice[team.id] === 'B' ? 'bg-amber-500/30 border-amber-500/70 text-amber-300' : 'border-camp-arena/20 text-camp-arena/30 hover:border-amber-500/40'}`}>B</button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <div className="flex gap-2">
             <button onClick={handleApplyResult} className="flex-1 font-display tracking-widest py-3 rounded-sm border-2 border-amber-400 text-amber-400 hover:bg-amber-400/15 uppercase transition-all">✓ Aplicar Resultado</button>
@@ -768,12 +852,13 @@ const MisionModal = ({ teams, onClose, onApply }) => {
   const [missions, setMissions] = useState(() => getMissions());
   const [editing,  setEditing] = useState(null);
   const [activeM,  setActiveM] = useState(null);
-  const [selected, setSelected] = useState([]);
+  const [teamResult, setTeamResult] = useState({});
 
   const [fTitle,   setFTitle]   = useState('');
   const [fDesc,    setFDesc]    = useState('');
   const [fWinPts,  setFWinPts]  = useState('300');
   const [fLosePts, setFLosePts] = useState('150');
+  const [fPhysical, setFPhysical] = useState(false);
 
   const refresh = () => setMissions(getMissions());
 
@@ -783,12 +868,13 @@ const MisionModal = ({ teams, onClose, onApply }) => {
     setFDesc(m?.description ?? '');
     setFWinPts(String(m?.winPts ?? 300));
     setFLosePts(String(m?.losePts ?? 150));
+    setFPhysical(m?.physical ?? false);
     setView('create');
   };
 
   const handleSave = () => {
     if (!fTitle.trim()) return;
-    saveMission({ id: editing?.id ?? Date.now(), title: fTitle.trim(), description: fDesc.trim(), winPts: parseInt(fWinPts, 10) || 300, losePts: parseInt(fLosePts, 10) || 150 });
+    saveMission({ id: editing?.id ?? Date.now(), title: fTitle.trim(), description: fDesc.trim(), winPts: parseInt(fWinPts, 10) || 300, losePts: parseInt(fLosePts, 10) || 150, physical: fPhysical });
     refresh();
     setView('bank');
   };
@@ -797,19 +883,36 @@ const MisionModal = ({ teams, onClose, onApply }) => {
 
   const handleLaunch = m => {
     setActiveM(m);
-    setSelected([]);
+    setTeamResult({});
     onApply({ type: 'mision-show', mission: m, _silent: true }, []);
     setView('active');
   };
 
-  const toggle = id => setSelected(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
+  const setResult = (id, r) =>
+    setTeamResult(prev => ({ ...prev, [id]: prev[id] === r ? null : r }));
 
-  const handleApplyResult = passed => {
-    if (!activeM || selected.length === 0) return;
-    const delta = passed ? activeM.winPts : -activeM.losePts;
-    const affectedTeams = teams.filter(t => selected.includes(t.id));
-    const updates = affectedTeams.map(t => ({ teamId: t.id, newCash: Math.max(0, +t.cash + delta) }));
-    onApply({ type: 'mision', title: activeM.title, description: activeM.description, teams: affectedTeams, passed, amount: Math.abs(delta) }, updates);
+  const handleApplyResult = () => {
+    if (!activeM) return;
+    const passTeams = teams.filter(t => teamResult[t.id] === 'pass');
+    const failTeams = teams.filter(t => teamResult[t.id] === 'fail');
+    if (passTeams.length === 0 && failTeams.length === 0) return;
+    const passiveAdjustments = [];
+    const makeUpdate = (team, passed) => {
+      const basePoints = passed ? activeM.winPts : -activeM.losePts;
+      const eventType  = passed && activeM.physical ? 'mision-fisica' : (passed ? 'bono' : 'penalizacion');
+      const adjusted   = Math.round(applyPassive(team, eventType, basePoints));
+      if (adjusted !== basePoints) {
+        const s = SOLDIERS_MAP[team.soldierType];
+        passiveAdjustments.push({ teamId: team.id, teamName: team.name, raw: Math.abs(basePoints), adjusted: Math.abs(adjusted), diff: Math.abs(adjusted) - Math.abs(basePoints), soldierName: s?.name ?? '', soldierEmoji: s?.emoji ?? '' });
+      }
+      return { teamId: team.id, newCash: Math.max(0, +team.cash + adjusted) };
+    };
+    const updates = [
+      ...passTeams.map(t => makeUpdate(t, true)),
+      ...failTeams.map(t => makeUpdate(t, false)),
+    ];
+    const allAffected = [...passTeams, ...failTeams];
+    onApply({ type: 'mision', title: activeM.title, description: activeM.description, teams: allAffected, passTeams: passTeams ?? [], failTeams: failTeams ?? [], amount: activeM.winPts, passiveAdjustments }, updates);
     onClose();
   };
 
@@ -873,6 +976,18 @@ const MisionModal = ({ teams, onClose, onApply }) => {
                 className="w-full bg-transparent border border-red-500/30 rounded-sm px-3 py-2 font-display text-lg text-red-400 text-center focus:outline-none" />
             </div>
           </div>
+          {/* Toggle misión física */}
+          <button
+            onClick={() => setFPhysical(p => !p)}
+            className={`w-full flex items-center gap-3 p-3 rounded-sm border transition-all mb-5 ${fPhysical ? 'border-red-400/60 bg-red-400/08' : 'border-camp-arena/15 hover:border-camp-arena/30'}`}
+          >
+            <div className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center shrink-0 transition-all ${fPhysical ? 'border-red-400 bg-red-400/20 text-red-400' : 'border-camp-arena/30 text-transparent'}`}>✓</div>
+            <div className="text-left">
+              <p className={`font-military text-sm ${fPhysical ? 'text-red-300' : 'text-camp-arena/60'}`}>⚔️ Es misión física</p>
+              <p className="font-military text-xs text-camp-arena/30">Guerrero recibe +10% automático al superar</p>
+            </div>
+          </button>
+
           <div className="flex gap-2">
             <button onClick={handleSave} disabled={!fTitle.trim()} className="flex-1 font-display tracking-widest py-3 rounded-sm border-2 border-emerald-400 text-emerald-400 hover:bg-emerald-400/15 disabled:opacity-30 uppercase transition-all">Guardar Misión</button>
             <button onClick={() => setView('bank')} className="font-military text-camp-arena/40 hover:text-camp-arena/70 px-4">← Volver</button>
@@ -894,25 +1009,50 @@ const MisionModal = ({ teams, onClose, onApply }) => {
             {activeM.description && <p className="font-military text-xs text-camp-arena/60 mt-1">{activeM.description}</p>}
             <p className="font-military text-xs text-camp-arena/35 mt-1.5">✅ +{activeM.winPts} si supera · ❌ −{activeM.losePts} si falla</p>
           </div>
-          <p className="font-military text-camp-arena/40 text-xs tracking-widest mb-2 uppercase">¿Qué equipos participan?</p>
+          <p className="font-military text-camp-arena/40 text-xs tracking-widest mb-2 uppercase">Resultado por equipo</p>
           <div className="grid grid-cols-2 gap-2 mb-5">
-            {teams.map(team => (
-              <button key={team.id} onClick={() => toggle(team.id)}
-                className="flex items-center gap-2 p-2.5 rounded-sm border transition-all"
-                style={{ borderColor: selected.includes(team.id) ? team.color : 'rgba(255,255,255,0.12)', backgroundColor: selected.includes(team.id) ? `${team.color}28` : 'transparent' }}>
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team.color }} />
-                <span className="font-military text-sm text-camp-hueso">{team.name}</span>
-                {selected.includes(team.id) && <span className="ml-auto text-xs text-emerald-400">✓</span>}
-              </button>
-            ))}
+            {teams.map(team => {
+              const soldier  = SOLDIERS_MAP[team.soldierType];
+              const isPhysicalGuerrero = soldier?.id === 'guerrero' && activeM?.physical;
+              const status   = teamResult[team.id];
+              return (
+                <div key={team.id}
+                  className="flex flex-col gap-1.5 rounded-sm border p-2"
+                  style={{ borderColor: `${team.color}40`, backgroundColor: `${team.color}0a` }}>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: team.color }} />
+                    <span className="font-military text-xs text-camp-hueso flex-1 truncate">{team.name}</span>
+                    {soldier && <span className="text-xs">{soldier.emoji}</span>}
+                  </div>
+                  {isPhysicalGuerrero && (
+                    <p className="font-military text-[10px] text-red-400/70 leading-none pl-4">⚔️ +10% si supera</p>
+                  )}
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setResult(team.id, 'pass')}
+                      className={`flex-1 text-xs py-0.5 rounded-sm border transition-all ${
+                        status === 'pass'
+                          ? 'bg-emerald-500/30 border-emerald-500/70 text-emerald-300'
+                          : 'border-camp-arena/20 text-camp-arena/30 hover:border-emerald-500/40'}`}
+                    >✅</button>
+                    <button
+                      onClick={() => setResult(team.id, 'fail')}
+                      className={`flex-1 text-xs py-0.5 rounded-sm border transition-all ${
+                        status === 'fail'
+                          ? 'bg-red-500/30 border-red-500/70 text-red-300'
+                          : 'border-camp-arena/20 text-camp-arena/30 hover:border-red-500/40'}`}
+                    >❌</button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => handleApplyResult(true)} disabled={selected.length === 0}
-              className="font-display tracking-widest py-3 rounded-sm border-2 border-emerald-400 text-emerald-400 hover:bg-emerald-400/15 disabled:opacity-30 uppercase transition-all">✅ Superada</button>
-            <button onClick={() => handleApplyResult(false)} disabled={selected.length === 0}
-              className="font-display tracking-widest py-3 rounded-sm border-2 border-red-400 text-red-400 hover:bg-red-400/15 disabled:opacity-30 uppercase transition-all">❌ Fallida</button>
-          </div>
-          <button onClick={onClose} className="w-full font-military text-camp-arena/30 hover:text-camp-arena/60 py-2 mt-2 text-sm">Cancelar</button>
+          <button
+            onClick={handleApplyResult}
+            disabled={Object.values(teamResult).every(v => !v)}
+            className="w-full font-display tracking-widest py-3 rounded-sm border-2 border-emerald-400 text-emerald-400 hover:bg-emerald-400/15 disabled:opacity-30 uppercase transition-all mb-2"
+          >✓ Aplicar Resultado</button>
+          <button onClick={onClose} className="w-full font-military text-camp-arena/30 hover:text-camp-arena/60 py-2 text-sm">Cancelar</button>
         </>}
       </div>
     </div>
@@ -921,39 +1061,67 @@ const MisionModal = ({ teams, onClose, onApply }) => {
 
 // ── Modal Ruleta (equipo primero → girar en mapa) ─────────────────
 const RuletaModal = ({ teams, onClose, onApply }) => {
-  const [selected, setSelected] = useState([]);
-  const [result,   setResult]   = useState(null);
-  const [spinning, setSpinning] = useState(false);
-  const [spinIdx,  setSpinIdx]  = useState(0);
+  const [selected,     setSelected]     = useState([]);
+  const [result,       setResult]       = useState(null);
+  const [spinning,     setSpinning]     = useState(false);
+  const [spinIdx,      setSpinIdx]      = useState(0);
+  const [explorerUsed, setExplorerUsed] = useState(false);
+  const intervalRef = useRef(null);
+
+  // Limpia el intervalo al desmontar para evitar memory leaks
+  useEffect(() => {
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, []);
 
   const toggle = id => setSelected(prev =>
     prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
 
-  const handleSpin = () => {
-    if (selected.length === 0) return;
+  const doSpin = () => {
     setSpinning(true);
     setResult(null);
     const affectedTeams = teams.filter(t => selected.includes(t.id));
-    // Mostrar ruleta girando en el mapa
     onApply({ type: 'ruleta-spin', teams: affectedTeams, _silent: true }, []);
     let count = 0;
     const total = 20 + Math.floor(Math.random() * 10);
-    const iv = setInterval(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
       setSpinIdx(prev => (prev + 1) % RULETA_EVENTS.length);
       count++;
       if (count >= total) {
-        clearInterval(iv);
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
         setResult(RULETA_EVENTS[Math.floor(Math.random() * RULETA_EVENTS.length)]);
         setSpinning(false);
       }
     }, 120);
   };
 
+  const handleSpin = () => {
+    if (selected.length === 0) return;
+    doSpin();
+  };
+
+  const hasExplorer = selected.some(id => {
+    const t = teams.find(t => t.id === id);
+    return SOLDIERS_MAP[t?.soldierType]?.id === 'explorador';
+  });
+
   const handleApply = () => {
     if (!result || selected.length === 0) return;
     const affectedTeams = teams.filter(t => selected.includes(t.id));
-    const updates = affectedTeams.map(t => ({ teamId: t.id, newCash: Math.max(0, +t.cash + result.delta) }));
-    onApply({ type: 'ruleta', event: result, teams: affectedTeams, amount: Math.abs(result.delta), positive: result.positive }, updates);
+    const passiveAdjustments = [];
+    const updates = affectedTeams.map(t => {
+      // Guardián absorbe el 15% en eventos negativos de la ruleta
+      const adjusted = result.delta < 0
+        ? Math.round(applyPassive(t, 'penalizacion', result.delta))
+        : result.delta;
+      if (adjusted !== result.delta) {
+        const s = SOLDIERS_MAP[t.soldierType];
+        passiveAdjustments.push({ teamId: t.id, teamName: t.name, raw: Math.abs(result.delta), adjusted: Math.abs(adjusted), diff: Math.abs(adjusted) - Math.abs(result.delta), soldierName: s?.name ?? '', soldierEmoji: s?.emoji ?? '' });
+      }
+      return { teamId: t.id, newCash: Math.max(0, +t.cash + adjusted) };
+    });
+    onApply({ type: 'ruleta', event: result, teams: affectedTeams, amount: Math.abs(result.delta), positive: result.positive, passiveAdjustments }, updates);
     onClose();
   };
 
@@ -972,15 +1140,25 @@ const RuletaModal = ({ teams, onClose, onApply }) => {
 
         <p className="font-military text-camp-arena/40 text-xs tracking-widest mb-2 uppercase">¿Qué equipos participan?</p>
         <div className="grid grid-cols-2 gap-2 mb-4">
-          {teams.map(team => (
-            <button key={team.id} onClick={() => toggle(team.id)} disabled={spinning || !!result}
-              className="flex items-center gap-2 p-2.5 rounded-sm border transition-all disabled:opacity-50"
-              style={{ borderColor: selected.includes(team.id) ? team.color : 'rgba(255,255,255,0.12)', backgroundColor: selected.includes(team.id) ? `${team.color}28` : 'transparent' }}>
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team.color }} />
-              <span className="font-military text-sm text-camp-hueso">{team.name}</span>
-              {selected.includes(team.id) && <span className="ml-auto text-xs text-purple-400">✓</span>}
-            </button>
-          ))}
+          {teams.map(team => {
+            const soldier    = SOLDIERS_MAP[team.soldierType];
+            const isExplorer = soldier?.id === 'explorador';
+            return (
+              <button key={team.id} onClick={() => toggle(team.id)} disabled={spinning || !!result}
+                className="flex flex-col gap-1 p-2.5 rounded-sm border transition-all disabled:opacity-50 text-left"
+                style={{ borderColor: selected.includes(team.id) ? team.color : 'rgba(255,255,255,0.12)', backgroundColor: selected.includes(team.id) ? `${team.color}28` : 'transparent' }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: team.color }} />
+                  <span className="font-military text-sm text-camp-hueso flex-1">{team.name}</span>
+                  {soldier && <span className="text-xs">{soldier.emoji}</span>}
+                  {selected.includes(team.id) && <span className="text-xs text-purple-400">✓</span>}
+                </div>
+                {isExplorer && selected.includes(team.id) && !explorerUsed && (
+                  <p className="font-military text-[10px] text-primary-400/70 leading-none pl-5">🗺️ puede relanzar</p>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {spinning && (
@@ -1005,6 +1183,15 @@ const RuletaModal = ({ teams, onClose, onApply }) => {
             className="w-full font-display tracking-widest text-xl py-4 rounded-sm border-2 border-purple-400 text-purple-400 hover:bg-purple-400/15 disabled:opacity-30 uppercase transition-all animate-pulse-slow mb-3"
           >🎲 Girar en el Mapa</button>
         )}
+
+        {/* Explorador puede relanzar */}
+        {result && !spinning && hasExplorer && !explorerUsed && (
+          <button
+            onClick={() => { setExplorerUsed(true); doSpin(); }}
+            className="w-full font-military text-sm py-2.5 rounded-sm border border-primary-400/60 text-primary-400 hover:bg-primary-400/10 transition-all mb-3"
+          >🗺️ EXPLORADOR — Relanzar (1 vez)</button>
+        )}
+
         {result && (
           <div className="flex gap-2 mb-3">
             <button onClick={handleApply}
@@ -1073,16 +1260,34 @@ export const CommandPanel = () => {
   };
 
   const handleQuickEvent = async (teamIds, delta) => {
+    const eventType = delta > 0 ? 'bono' : 'penalizacion';
+    const passiveAdjustments = [];
+
+    const teamUpdates = teamIds.map(teamId => {
+      const team = teams.find(t => t.id === teamId);
+      const adjusted = Math.round(applyPassive(team, eventType, delta));
+      if (adjusted !== delta) {
+        const soldier = SOLDIERS_MAP[team.soldierType];
+        passiveAdjustments.push({
+          teamId,
+          teamName: team.name,
+          raw:      Math.abs(delta),
+          adjusted: Math.abs(adjusted),
+          diff:     Math.abs(adjusted) - Math.abs(delta),
+          soldierName:  soldier?.name  ?? '',
+          soldierEmoji: soldier?.emoji ?? '',
+        });
+      }
+      return { teamId, newCash: Math.max(0, Number(team.cash) + adjusted) };
+    });
+
     const payload = {
       type:    delta > 0 ? 'bono' : 'emboscada',
       teamIds,
       amount:  Math.abs(delta),
       teams:   teams.filter(t => teamIds.includes(t.id)),
+      passiveAdjustments,
     };
-    const teamUpdates = teamIds.map(teamId => {
-      const team = teams.find(t => t.id === teamId);
-      return { teamId, newCash: Math.max(0, Number(team.cash) + delta) };
-    });
     await broadcastEvent(payload, teamUpdates);
   };
 

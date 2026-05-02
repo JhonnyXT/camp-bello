@@ -172,17 +172,28 @@ export const SoldierSelection = () => {
   const handleBattle = async () => {
     setSaving(true);
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         Object.entries(assignments).map(([teamId, soldierType]) =>
           axios.put(
             `${import.meta.env.VITE_API_URL}/api/teams/${teamId}/soldier`,
             { soldierType }
-          )
+          ).then(() => ({ teamId, ok: true }))
+           .catch(() => ({ teamId, ok: false }))
         )
       );
-      navigate('/mapa');
+      const failed = results
+        .filter(r => r.status === 'fulfilled' && !r.value.ok)
+        .map(r => teams.find(t => String(t.id) === String(r.value.teamId))?.name)
+        .filter(Boolean);
+
+      if (failed.length > 0) {
+        setAlert({ type: 'error', msg: `Error al guardar: ${failed.join(', ')}. Intenta de nuevo.` });
+        setSaving(false);
+      } else {
+        navigate('/mapa');
+      }
     } catch {
-      setAlert({ type: 'error', msg: 'Error al guardar. Intenta de nuevo.' });
+      setAlert({ type: 'error', msg: 'Error inesperado. Intenta de nuevo.' });
       setSaving(false);
     }
   };

@@ -98,7 +98,7 @@ const SoldierCard = ({ team, rank, flashType }) => {
 };
 
 // ── Banda de zona ────────────────────────────────────────────────
-const ZoneBand = ({ zone, teams, flashTeamIds, flashType }) => {
+const ZoneBand = ({ zone, teams, flashTeamIds, flashType, globalRanks }) => {
   const colors   = ZONE_COLORS[zone.id] ?? ZONE_COLORS.base;
   const hasTeams = teams.length > 0;
 
@@ -132,11 +132,11 @@ const ZoneBand = ({ zone, teams, flashTeamIds, flashType }) => {
       {/* Soldados */}
       <div className="flex flex-wrap gap-3 flex-1 py-2">
         {hasTeams ? (
-          teams.map((team, i) => (
+          teams.map((team) => (
             <SoldierCard
               key={team.id}
               team={team}
-              rank={i}
+              rank={globalRanks.get(team.id) ?? 0}
               flashType={flashTeamIds?.includes(team.id) ? flashType : null}
             />
           ))
@@ -213,6 +213,7 @@ const Leaderboard = ({ teams, maxCash }) => {
 export const CampaignMap = () => {
   const navigate = useNavigate();
   const [teams,      setTeams]      = useState([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pulse,      setPulse]      = useState(false);
@@ -222,6 +223,13 @@ export const CampaignMap = () => {
   const [liveMission,   setLiveMission]   = useState(null);
   const [ruletaSpin,    setRuletaSpin]    = useState(null);
 
+  // Cerrar overlay con ESC
+  useEffect(() => {
+    const onKey = ev => { if (ev.key === 'Escape') setFlashEvent(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const maxCash = teams.reduce((m, t) => Math.max(m, Number(t.cash)), 0);
 
   const fetchTeams = useCallback(async (manual = false) => {
@@ -229,6 +237,7 @@ export const CampaignMap = () => {
     try {
       const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/teams`);
       setTeams(data);
+      setDataLoaded(true);
       setLastUpdate(new Date());
       setPulse(true);
       setTimeout(() => setPulse(false), 600);
@@ -264,7 +273,6 @@ export const CampaignMap = () => {
       if (type === 'ruleta')        setRuletaSpin(null);
       setFlashEvent(e.data);
       fetchTeams();
-      setTimeout(() => setFlashEvent(null), 5500);
     };
     return () => ch.close();
   }, [fetchTeams]);
@@ -276,6 +284,42 @@ export const CampaignMap = () => {
       .filter(t => getZone(t.cash, maxCash).id === zone.id)
       .sort((a, b) => Number(b.cash) - Number(a.cash)),
   }));
+
+  // Ranking global: Map<teamId, índice> ordenado por cash desc
+  const globalRanks = new Map(
+    [...teams]
+      .sort((a, b) => Number(b.cash) - Number(a.cash))
+      .map((t, i) => [t.id, i])
+  );
+
+  // Estado vacío: primera carga sin equipos
+  if (dataLoaded && teams.length === 0) {
+    return (
+      <div className="h-screen bg-camp-carbon flex flex-col items-center justify-center gap-6 px-6 text-center">
+        <span className="text-6xl">🏕️</span>
+        <h1 className="font-display text-4xl text-camp-hueso tracking-widest leading-none">
+          SIN EQUIPOS
+        </h1>
+        <p className="font-military text-camp-arena/50 text-base tracking-wide max-w-xs">
+          No hay equipos creados todavía. El Game Master debe crear los equipos y asignar soldados antes de comenzar.
+        </p>
+        <div className="flex flex-col gap-3 mt-2 w-full max-w-xs">
+          <button
+            onClick={() => navigate('/seleccion')}
+            className="w-full font-display tracking-[0.15em] text-lg py-4 rounded-sm border-2 border-camp-dorado text-camp-dorado hover:bg-camp-dorado hover:text-camp-carbon transition-all uppercase"
+          >
+            ⚔️ Selección de Soldados
+          </button>
+          <button
+            onClick={() => navigate('/admin')}
+            className="w-full font-military tracking-widest text-sm py-3 rounded-sm border border-camp-arena/25 text-camp-arena/45 hover:text-camp-arena/70 hover:border-camp-arena/45 transition-all uppercase"
+          >
+            ⚙️ Crear Equipos en Gestión
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-camp-carbon flex flex-col overflow-hidden">
@@ -362,6 +406,7 @@ export const CampaignMap = () => {
               teams={zoneTeams}
               flashTeamIds={flashEvent?.teamIds}
               flashType={flashEvent?.type}
+              globalRanks={globalRanks}
             />
           ))}
         </div>
@@ -507,7 +552,7 @@ export const CampaignMap = () => {
           bono:      'radial-gradient(circle at center, rgba(200,146,42,0.55) 0%, rgba(0,0,0,0.8) 70%)',
           quiz:      'radial-gradient(circle at center, rgba(59,130,246,0.50) 0%, rgba(0,0,0,0.8) 70%)',
           decision:  'radial-gradient(circle at center, rgba(245,158,11,0.50) 0%, rgba(0,0,0,0.8) 70%)',
-          mision:    e.passed
+          mision:    (e.passTeams?.length > 0)
             ? 'radial-gradient(circle at center, rgba(16,185,129,0.50) 0%, rgba(0,0,0,0.8) 70%)'
             : 'radial-gradient(circle at center, rgba(169,50,38,0.50) 0%, rgba(0,0,0,0.8) 70%)',
           ruleta:    e.positive
@@ -524,9 +569,15 @@ export const CampaignMap = () => {
 
         return (
           <div
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center pointer-events-none px-8"
-            style={{ background: BG, animation: 'fadeInOut 5.5s ease forwards' }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8 animate-fade-in"
+            style={{ background: BG }}
+            onClick={() => setFlashEvent(null)}
           >
+            {/* Botón cerrar */}
+            <button
+              onClick={e => { e.stopPropagation(); setFlashEvent(null); }}
+              className="absolute top-6 right-6 font-military text-camp-arena/40 hover:text-camp-hueso text-sm tracking-widest border border-camp-arena/20 hover:border-camp-arena/50 px-4 py-1.5 rounded-sm transition-all"
+            >ESC · CERRAR</button>
             {/* ── EMBOSCADA ── */}
             {e.type === 'emboscada' && <>
               <span className="text-9xl mb-4 animate-zoom-in">💥</span>
@@ -538,6 +589,15 @@ export const CampaignMap = () => {
               <div className="flex flex-wrap justify-center gap-3 mt-5">
                 {(e.teams || []).map(t => <TeamBadge key={t.id} t={t} />)}
               </div>
+              {(e.passiveAdjustments || []).length > 0 && (
+                <div className="mt-4 flex flex-col items-center gap-2 animate-fade-in">
+                  {e.passiveAdjustments.map(pa => (
+                    <p key={pa.teamId} className="font-military text-green-400 text-lg tracking-wide">
+                      🛡️ {pa.teamName} ({pa.soldierEmoji} {pa.soldierName}) absorbió {Math.abs(pa.diff)} pts
+                    </p>
+                  ))}
+                </div>
+              )}
             </>}
 
             {/* ── BONO ── */}
@@ -551,6 +611,15 @@ export const CampaignMap = () => {
               <div className="flex flex-wrap justify-center gap-3 mt-5">
                 {(e.teams || []).map(t => <TeamBadge key={t.id} t={t} />)}
               </div>
+              {(e.passiveAdjustments || []).length > 0 && (
+                <div className="mt-4 flex flex-col items-center gap-2 animate-fade-in">
+                  {e.passiveAdjustments.map(pa => (
+                    <p key={pa.teamId} className="font-military text-camp-dorado text-lg tracking-wide">
+                      ⚔️ {pa.teamName} ({pa.soldierEmoji} {pa.soldierName}) +{pa.diff} pts extra
+                    </p>
+                  ))}
+                </div>
+              )}
             </>}
 
             {/* ── QUIZ RESULT ── */}
@@ -623,16 +692,10 @@ export const CampaignMap = () => {
 
             {/* ── MISIÓN ── */}
             {e.type === 'mision' && <>
-              <span className="text-8xl mb-3 animate-zoom-in">{e.passed ? '🎯' : '💀'}</span>
-              <h1
-                className="font-display tracking-[0.25em] animate-zoom-in"
-                style={{
-                  fontSize: 'clamp(2.5rem,7vw,5rem)',
-                  color: e.passed ? '#34d399' : '#f87171',
-                  textShadow: e.passed ? '0 0 40px #10b981' : '0 0 40px #ef4444',
-                }}
-              >
-                MISIÓN {e.passed ? 'SUPERADA' : 'FALLIDA'}
+              <span className="text-8xl mb-3 animate-zoom-in">🎯</span>
+              <h1 className="font-display tracking-[0.25em] animate-zoom-in text-emerald-400"
+                style={{ fontSize: 'clamp(2.5rem,7vw,5rem)', textShadow: '0 0 40px #10b981' }}>
+                MISIÓN
               </h1>
               {e.title && (
                 <p className="font-military text-camp-arena/80 text-2xl text-center mt-3 animate-fade-in tracking-wider">
@@ -644,11 +707,23 @@ export const CampaignMap = () => {
                   {e.description}
                 </p>
               )}
-              <p className="font-military text-camp-arena/60 text-xl tracking-widest mt-3 animate-fade-in">
-                {e.passed ? '+' : '−'}{e.amount} puntos
-              </p>
-              <div className="flex flex-wrap justify-center gap-3 mt-5">
-                {(e.teams || []).map(t => <TeamBadge key={t.id} t={t} />)}
+              <div className="flex flex-wrap justify-center gap-6 mt-5">
+                {(e.passTeams || []).length > 0 && (
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="font-military text-green-400 text-sm tracking-widest uppercase">✅ Superaron +{e.amount}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {e.passTeams.map(t => <TeamBadge key={t.id} t={t} />)}
+                    </div>
+                  </div>
+                )}
+                {(e.failTeams || []).length > 0 && (
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="font-military text-red-400 text-sm tracking-widest uppercase">❌ Fallaron −{e.amount}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {e.failTeams.map(t => <TeamBadge key={t.id} t={t} />)}
+                    </div>
+                  </div>
+                )}
               </div>
             </>}
 
