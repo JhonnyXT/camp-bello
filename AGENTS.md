@@ -137,7 +137,7 @@ Definidos en `frontend/src/constants/soldiers.js`. Cada equipo elige uno al inic
 | `guerrero` | GUERRERO | ⚔️ | **+10 pts extra** en misiones con toggle "física" activado |
 | `estratega` | ESTRATEGIA | 🧠 | **Segunda oportunidad** en quizzes antes de recibir penalización |
 | `guardian` | GUARDIÁN | 🛡️ | **Reduce −15%** en todas las penalizaciones (emboscada + fallo quiz/decisión) |
-| `explorador` | EXPLORADOR | 🗺️ | **Puede relanzar la ruleta** una vez por turno |
+| `vigia` | VIGÍA | 👁️ | **+25% extra** en todos los Bonos de Honor |
 
 #### Cómo se aplican los pasivos — `utils/game.js`
 
@@ -149,8 +149,8 @@ applyPassive(team, eventType, basePoints)
 // 'mision-fisica'  → Guerrero +10%
 // 'penalizacion'   → Guardián −15%
 // 'quiz'           → Estrategia (manejo especial en QuizModal)
-// 'ruleta'         → Explorador (UI en RuletaModal)
-// 'bono'           → ningún pasivo aplica
+// 'mision-fisica'  → Guerrero +10%
+// 'bono'           → Vigía +25%
 
 // Obtener info del pasivo para mostrar badge en la UI
 getPassiveInfo(team, eventType)
@@ -350,10 +350,13 @@ VITE_MASTER_PIN=1234
 - [ ] **CORS abierto** — `api/models/server.js` acepta cualquier origen. Restringir con `cors({ origin: process.env.ALLOWED_ORIGIN })`.
 - [ ] **Sin autenticación real** — el PIN de `/comando` es solo UI. Agregar token JWT o sesión en la API.
 - [ ] **BroadcastChannel solo same-origin** — no funciona entre dispositivos distintos. Migrar a WebSocket para eventos en vivo entre pantallas físicamente separadas.
-- [ ] **Sin validación de inputs en la API** — `postTeams` no valida campos antes de `Team.create()`.
-- [ ] **Componentes legacy** — `components/Button.jsx` y `ButtonIcon.jsx` existen pero están deprecados. No usar.
-- [ ] **`sqlite3` instalado sin uso** en `api/package.json` — desinstalar.
-- [ ] **Pasivo del Explorador incompleto** — la descripción dice "elegir el siguiente evento del mapa" pero la implementación actual solo permite relanzar la ruleta. El pasivo completo está pendiente de diseñar.
+
+### Resueltas
+
+- [x] **Sin validación de inputs en la API** — `postTeams` ya valida `name`, `cash` y `color` antes de `Team.create()`.
+- [x] **Componentes legacy eliminados** — `components/Button.jsx` y `ButtonIcon.jsx` eliminados (no tenían importaciones activas).
+- [x] **`sqlite3`** — no estaba en `api/package.json`; nunca se instaló en esta versión del proyecto.
+- [x] **Pasivo del Explorador incompleto** — arquetipo reemplazado por **VIGÍA** (`id: 'vigia'`). Pasivo: recibe 25% extra en Bonos de Honor. Implementado en `applyPassive` y `getPassiveInfo` de `utils/game.js`.
 
 ---
 

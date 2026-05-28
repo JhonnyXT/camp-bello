@@ -44,8 +44,9 @@ export const applyPassive = (team, eventType, basePoints) => {
       if (basePoints < 0) return Math.round(basePoints * 0.85);
       return basePoints;
 
-    case 'explorador':
-      // Puede elegir el siguiente evento: no modifica puntos base.
+    case 'paladin':
+      // Dobla puntos en quizzes correctos (basePoints > 0)
+      if (eventType === 'quiz' && basePoints > 0) return basePoints * 2;
       return basePoints;
 
     default:
@@ -89,9 +90,9 @@ export const getPassiveInfo = (team, eventType) => {
     case 'guardian':
       return eventType === 'penalizacion'
         ? { label: '-15% penal.', color: '#4ade80', emoji: '🛡️', desc: 'Absorbe el 15%' } : null;
-    case 'explorador':
-      return eventType === 'ruleta'
-        ? { label: 'relanzar', color: '#38bdf8', emoji: '🗺️', desc: 'Puede relanzar' } : null;
+    case 'paladin':
+      return eventType === 'quiz'
+        ? { label: '×2 pts', color: '#38bdf8', emoji: '⚜️', desc: 'Dobla puntos en quiz correcto' } : null;
     default:
       return null;
   }

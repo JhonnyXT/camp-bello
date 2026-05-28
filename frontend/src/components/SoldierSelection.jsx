@@ -214,7 +214,7 @@ export const SoldierSelection = () => {
           SOLDADO
         </h1>
         <p className="font-military text-camp-arena/50 text-base sm:text-lg mt-3 tracking-wide">
-          Cada equipo elige su arquetipo antes de la batalla
+          Cada equipo elige su rango antes de la batalla
         </p>
       </header>
 
@@ -339,7 +339,7 @@ export const SoldierSelection = () => {
                 {pickerSoldier.name}
               </h3>
               <p className="font-military text-camp-arena/45 text-sm mt-1">
-                ¿Qué equipo seguirá este arquetipo?
+                ¿Qué equipo tendrá este rango?
               </p>
             </div>
 
@@ -347,7 +347,7 @@ export const SoldierSelection = () => {
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {unassignedTeams.length === 0 ? (
                 <p className="font-military text-camp-arena/40 text-sm text-center py-6">
-                  Todos los equipos ya tienen arquetipo
+                  Todos los equipos ya tienen rango asignado
                 </p>
               ) : (
                 unassignedTeams.map(team => (

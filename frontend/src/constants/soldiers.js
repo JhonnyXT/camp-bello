@@ -58,12 +58,12 @@ export const SOLDIERS = [
     stats: { fuerza: 3, estrategia: 2, defensa: 5, exploración: 2 },
   },
   {
-    id: 'explorador',
-    name: 'EXPLORADOR',
-    emoji: '🗺️',
-    tagline: 'Descubridor de rutas. Ve lo que nadie ve.',
-    description: 'Siempre hay otro camino. Mapea el territorio antes de actuar.',
-    passive: 'Puede elegir el siguiente evento del mapa',
+    id: 'paladin',
+    name: 'PALADÍN',
+    emoji: '⚜️',
+    tagline: 'Su conocimiento es su espada.',
+    description: 'Portador de la verdad en el campo de batalla. Donde otros fallan, él proclama la respuesta correcta.',
+    passive: 'Al ganar un quiz recibe el doble de puntos',
     verse: 'Sal 37:3',
     verseText: 'Fía en Jehová y sigue el bien',
     borderClass:       'border-primary-500',
@@ -73,7 +73,7 @@ export const SOLDIERS = [
     bgClass:           'from-blue-950/60 to-camp-carbon',
     dotClass:          'bg-primary-400',
     accentColor:       '#0ea5e9',
-    stats: { fuerza: 2, estrategia: 3, defensa: 2, exploración: 5 },
+    stats: { fuerza: 2, estrategia: 5, defensa: 2, exploración: 3 },
   },
 ];
 

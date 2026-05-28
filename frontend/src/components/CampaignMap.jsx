@@ -430,34 +430,34 @@ export const CampaignMap = () => {
           style={{ background: 'radial-gradient(circle at center, rgba(23,37,84,0.92) 0%, rgba(0,0,0,0.96) 70%)' }}
         >
           {/* Badge EN VIVO */}
-          <div className="flex items-center gap-2 mb-6 animate-fade-in">
-            <div className="w-3 h-3 rounded-full bg-blue-400 animate-pulse-slow" />
-            <span className="font-military text-blue-400/80 text-xs tracking-[0.5em] uppercase">Quiz en vivo</span>
-            <div className="w-3 h-3 rounded-full bg-blue-400 animate-pulse-slow" />
+          <div className="flex items-center gap-3 mb-8 animate-fade-in">
+            <div className="w-4 h-4 rounded-full bg-blue-400 animate-pulse-slow" />
+            <span className="font-military text-blue-400/90 text-lg tracking-[0.4em] uppercase">Quiz en vivo</span>
+            <div className="w-4 h-4 rounded-full bg-blue-400 animate-pulse-slow" />
           </div>
 
           {/* Pregunta */}
           <h2
-            className="font-display text-camp-hueso text-center mb-8 animate-zoom-in leading-tight"
-            style={{ fontSize: 'clamp(1.8rem, 5vw, 3.5rem)', maxWidth: '820px', textShadow: '0 0 30px rgba(96,165,250,0.4)' }}
+            className="font-display text-camp-hueso text-center mb-10 animate-zoom-in leading-tight"
+            style={{ fontSize: 'clamp(2.2rem, 6vw, 4.5rem)', maxWidth: '900px', textShadow: '0 0 40px rgba(96,165,250,0.5)' }}
           >
             {liveQuestion.text}
           </h2>
 
           {/* Opciones múltiple */}
           {liveQuestion.type === 'multiple' && liveQuestion.options && (
-            <div className="grid grid-cols-2 gap-4 w-full max-w-2xl animate-fade-in">
+            <div className="grid grid-cols-2 gap-5 w-full max-w-3xl animate-fade-in">
               {['A', 'B', 'C', 'D'].map(opt =>
                 liveQuestion.options[opt] ? (
                   <div key={opt}
-                    className="flex items-center gap-4 px-5 py-4 rounded-sm border border-blue-400/35"
+                    className="flex items-center gap-5 px-6 py-5 rounded-sm border border-blue-400/35"
                     style={{ background: 'rgba(59,130,246,0.07)' }}
                   >
                     <span
-                      className="font-display text-2xl shrink-0 w-10 h-10 rounded-full border-2 border-blue-400/60 flex items-center justify-center"
+                      className="font-display text-3xl shrink-0 w-12 h-12 rounded-full border-2 border-blue-400/60 flex items-center justify-center"
                       style={{ color: '#60a5fa' }}
                     >{opt}</span>
-                    <span className="font-military text-base text-camp-arena/90 leading-snug">
+                    <span className="font-military text-xl text-camp-arena/90 leading-snug">
                       {liveQuestion.options[opt]}
                     </span>
                   </div>
@@ -468,19 +468,19 @@ export const CampaignMap = () => {
 
           {/* Verdadero / Falso */}
           {liveQuestion.type === 'truefalse' && (
-            <div className="flex gap-6 animate-fade-in">
-              <div className="px-12 py-6 rounded-sm border-2 border-green-400/50"
+            <div className="flex gap-8 animate-fade-in">
+              <div className="px-16 py-8 rounded-sm border-2 border-green-400/50"
                 style={{ background: 'rgba(16,185,129,0.08)' }}>
-                <span className="font-display text-4xl text-green-400 tracking-widest">✓ VERDADERO</span>
+                <span className="font-display text-5xl text-green-400 tracking-widest">✓ VERDADERO</span>
               </div>
-              <div className="px-12 py-6 rounded-sm border-2 border-red-400/50"
+              <div className="px-16 py-8 rounded-sm border-2 border-red-400/50"
                 style={{ background: 'rgba(239,68,68,0.08)' }}>
-                <span className="font-display text-4xl text-red-400 tracking-widest">✗ FALSO</span>
+                <span className="font-display text-5xl text-red-400 tracking-widest">✗ FALSO</span>
               </div>
             </div>
           )}
 
-          <p className="font-military text-camp-arena/20 text-xs tracking-widest mt-10 uppercase animate-fade-in">
+          <p className="font-military text-camp-arena/40 text-base tracking-widest mt-12 uppercase animate-fade-in">
             El comandante marcará los resultados
           </p>
         </div>
@@ -490,26 +490,25 @@ export const CampaignMap = () => {
       {liveDecision && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8"
           style={{ background: 'radial-gradient(circle at center, rgba(78,52,0,0.92) 0%, rgba(0,0,0,0.96) 70%)' }}>
-          <div className="flex items-center gap-2 mb-6 animate-fade-in">
-            <div className="w-3 h-3 rounded-full bg-amber-400 animate-pulse-slow" />
-            <span className="font-military text-amber-400/80 text-xs tracking-[0.5em] uppercase">Decisión en vivo</span>
-            <div className="w-3 h-3 rounded-full bg-amber-400 animate-pulse-slow" />
+          <div className="flex items-center gap-3 mb-8 animate-fade-in">
+            <div className="w-4 h-4 rounded-full bg-amber-400 animate-pulse-slow" />
+            <span className="font-military text-amber-400/90 text-lg tracking-[0.4em] uppercase">Decisión en vivo</span>
+            <div className="w-4 h-4 rounded-full bg-amber-400 animate-pulse-slow" />
           </div>
           <h2 className="font-display text-camp-hueso text-center mb-10 animate-zoom-in leading-tight"
-            style={{ fontSize: 'clamp(1.8rem,5vw,3.5rem)', maxWidth: '820px', textShadow: '0 0 30px rgba(245,158,11,0.4)' }}>
+            style={{ fontSize: 'clamp(2.2rem,6vw,4.5rem)', maxWidth: '900px', textShadow: '0 0 40px rgba(245,158,11,0.5)' }}>
             {liveDecision.dilemma}
           </h2>
-          <div className="grid grid-cols-2 gap-6 w-full max-w-2xl animate-fade-in">
+          <div className="grid grid-cols-2 gap-8 w-full max-w-3xl animate-fade-in">
             {[['A', liveDecision.optionA, '#60a5fa'], ['B', liveDecision.optionB, '#f59e0b']].map(([label, opt, color]) => (
-              <div key={label} className="flex flex-col items-center gap-3 px-6 py-5 rounded-sm border"
+              <div key={label} className="flex flex-col items-center gap-4 px-8 py-7 rounded-sm border"
                 style={{ borderColor: `${color}50`, background: `${color}0a` }}>
-                <span className="font-display text-5xl" style={{ color }}>{label}</span>
-                {opt?.text && <p className="font-military text-base text-camp-arena/80 text-center">{opt.text}</p>}
-                <p className="font-display text-xl" style={{ color }}>{opt?.delta > 0 ? '+' : ''}{opt?.delta} pts</p>
+                <span className="font-display text-6xl" style={{ color }}>{label}</span>
+                {opt?.text && <p className="font-military text-xl text-camp-arena/80 text-center">{opt.text}</p>}
               </div>
             ))}
           </div>
-          <p className="font-military text-camp-arena/20 text-xs tracking-widest mt-10 uppercase animate-fade-in">
+          <p className="font-military text-camp-arena/40 text-base tracking-widest mt-12 uppercase animate-fade-in">
             El comandante asignará las opciones por equipo
           </p>
         </div>
@@ -519,23 +518,18 @@ export const CampaignMap = () => {
       {liveMission && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8"
           style={{ background: 'radial-gradient(circle at center, rgba(6,46,26,0.92) 0%, rgba(0,0,0,0.96) 70%)' }}>
-          <div className="flex items-center gap-2 mb-6 animate-fade-in">
-            <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse-slow" />
-            <span className="font-military text-emerald-400/80 text-xs tracking-[0.5em] uppercase">Misión en vivo</span>
-            <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse-slow" />
+          <div className="flex items-center gap-3 mb-8 animate-fade-in">
+            <div className="w-4 h-4 rounded-full bg-emerald-400 animate-pulse-slow" />
+            <span className="font-military text-emerald-400/90 text-lg tracking-[0.4em] uppercase">Misión en vivo</span>
+            <div className="w-4 h-4 rounded-full bg-emerald-400 animate-pulse-slow" />
           </div>
-          <span className="text-8xl mb-4 animate-zoom-in">🎯</span>
-          <h2 className="font-display text-camp-hueso text-center mb-4 animate-zoom-in tracking-widest"
-            style={{ fontSize: 'clamp(2rem,6vw,4rem)', textShadow: '0 0 30px rgba(16,185,129,0.4)' }}>
+          <span className="text-9xl mb-6 animate-zoom-in">🎯</span>
+          <h2 className="font-display text-camp-hueso text-center mb-6 animate-zoom-in tracking-widest"
+            style={{ fontSize: 'clamp(2.5rem,7vw,5rem)', textShadow: '0 0 40px rgba(16,185,129,0.5)' }}>
             {liveMission.title}
           </h2>
-          {liveMission.description && (
-            <p className="font-military text-camp-arena/70 text-xl text-center max-w-2xl animate-fade-in leading-relaxed">
-              {liveMission.description}
-            </p>
-          )}
-          <p className="font-military text-camp-arena/20 text-xs tracking-widest mt-10 uppercase animate-fade-in">
-            El comandante asignará los equipos y marcará el resultado
+          <p className="font-military text-camp-arena/40 text-base tracking-widest mt-12 uppercase animate-fade-in">
+            El comandante dará las instrucciones
           </p>
         </div>
       )}
@@ -562,7 +556,7 @@ export const CampaignMap = () => {
 
         const TeamBadge = ({ t }) => (
           <span
-            className="font-military text-sm px-4 py-1.5 rounded-sm animate-zoom-in"
+            className="font-military text-xl px-6 py-2.5 rounded-sm animate-zoom-in"
             style={{ backgroundColor: `${t.color}30`, border: `1px solid ${t.color}90`, color: t.color }}
           >{t.name}</span>
         );
@@ -576,7 +570,7 @@ export const CampaignMap = () => {
             {/* Botón cerrar */}
             <button
               onClick={e => { e.stopPropagation(); setFlashEvent(null); }}
-              className="absolute top-6 right-6 font-military text-camp-arena/40 hover:text-camp-hueso text-sm tracking-widest border border-camp-arena/20 hover:border-camp-arena/50 px-4 py-1.5 rounded-sm transition-all"
+              className="absolute top-6 right-6 font-military text-camp-arena/50 hover:text-camp-hueso text-base tracking-widest border border-camp-arena/25 hover:border-camp-arena/60 px-5 py-2 rounded-sm transition-all"
             >ESC · CERRAR</button>
             {/* ── EMBOSCADA ── */}
             {e.type === 'emboscada' && <>
@@ -637,7 +631,7 @@ export const CampaignMap = () => {
               <div className="flex flex-wrap justify-center gap-8 mt-6">
                 {(e.winnerTeams || []).length > 0 && (
                   <div className="text-center">
-                    <p className="font-military text-green-400/70 text-xs tracking-widest mb-2">✓ CORRECTO +{(e.winnerTeams[0] || {}).amount}</p>
+                    <p className="font-military text-green-400/80 text-lg tracking-widest mb-3">✓ CORRECTO +{(e.winnerTeams[0] || {}).amount}</p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {e.winnerTeams.map(t => <TeamBadge key={t.id} t={t} />)}
                     </div>
@@ -645,7 +639,7 @@ export const CampaignMap = () => {
                 )}
                 {(e.loserTeams || []).length > 0 && (
                   <div className="text-center">
-                    <p className="font-military text-red-400/70 text-xs tracking-widest mb-2">✗ INCORRECTO −{(e.loserTeams[0] || {}).amount}</p>
+                    <p className="font-military text-red-400/80 text-lg tracking-widest mb-3">✗ INCORRECTO −{(e.loserTeams[0] || {}).amount}</p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {e.loserTeams.map(t => <TeamBadge key={t.id} t={t} />)}
                     </div>
@@ -669,8 +663,8 @@ export const CampaignMap = () => {
               <div className="flex flex-wrap justify-center gap-8 mt-6">
                 {(e.teamsA || []).length > 0 && (
                   <div className="text-center">
-                    <p className="font-military text-blue-400/70 text-xs tracking-widest mb-2">
-                      OPCIÓN A: {e.optionA?.text} ({e.optionA?.delta > 0 ? '+' : ''}{e.optionA?.delta} pts)
+                    <p className="font-military text-blue-400/80 text-lg tracking-widest mb-3">
+                      OPCIÓN A: {e.optionA?.text}
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {e.teamsA.map(t => <TeamBadge key={t.id} t={t} />)}
@@ -679,8 +673,8 @@ export const CampaignMap = () => {
                 )}
                 {(e.teamsB || []).length > 0 && (
                   <div className="text-center">
-                    <p className="font-military text-amber-400/70 text-xs tracking-widest mb-2">
-                      OPCIÓN B: {e.optionB?.text} ({e.optionB?.delta > 0 ? '+' : ''}{e.optionB?.delta} pts)
+                    <p className="font-military text-amber-400/80 text-lg tracking-widest mb-3">
+                      OPCIÓN B: {e.optionB?.text}
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {e.teamsB.map(t => <TeamBadge key={t.id} t={t} />)}
@@ -688,6 +682,43 @@ export const CampaignMap = () => {
                   </div>
                 )}
               </div>
+
+              {/* ── Revelación de respuesta esperada ── */}
+              {e.expectedOption && (() => {
+                const expText  = e.expectedOption === 'A' ? e.optionA?.text : e.optionB?.text;
+                const wrongTeams = e.expectedOption === 'A' ? (e.teamsB || []) : (e.teamsA || []);
+                const rightTeams = e.expectedOption === 'A' ? (e.teamsA || []) : (e.teamsB || []);
+                return (
+                  <div className="mt-8 w-full max-w-2xl animate-fade-in">
+                    <div className="rounded-sm border-2 border-amber-400/60 bg-amber-500/10 p-5 text-center"
+                      style={{ boxShadow: '0 0 30px rgba(245,158,11,0.25)' }}>
+                      <p className="font-display tracking-[0.2em] text-amber-400 mb-1"
+                        style={{ fontSize: 'clamp(1.1rem,3vw,1.8rem)', textShadow: '0 0 20px #f59e0b' }}>
+                        ✝ RESPUESTA ESPERADA — OPCIÓN {e.expectedOption}
+                      </p>
+                      <p className="font-military text-camp-arena/80 text-lg mt-1 leading-snug">{expText}</p>
+                    </div>
+                    <div className="flex gap-4 mt-4 justify-center flex-wrap">
+                      {rightTeams.length > 0 && (
+                        <div className="text-center">
+                          <p className="font-military text-green-400/80 text-base tracking-widest mb-2 uppercase">✓ Respondieron bien</p>
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            {rightTeams.map(t => <TeamBadge key={t.id} t={t} />)}
+                          </div>
+                        </div>
+                      )}
+                      {wrongTeams.length > 0 && (
+                        <div className="text-center">
+                          <p className="font-military text-red-400/80 text-base tracking-widest mb-2 uppercase">✗ Respondieron diferente</p>
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            {wrongTeams.map(t => <TeamBadge key={t.id} t={t} />)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </>}
 
             {/* ── MISIÓN ── */}
