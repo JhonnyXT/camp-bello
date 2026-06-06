@@ -78,7 +78,7 @@ export const Landing = () => {
           className={`transition-all duration-1000 ease-out mb-4
             ${phase >= 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
         >
-          <span className="text-5xl sm:text-7xl animate-glow block leading-none">✝️</span>
+          <span className="text-5xl sm:text-6xl animate-glow block leading-none">✝️</span>
         </div>
 
         {/* Título — fase 2 */}
@@ -86,21 +86,21 @@ export const Landing = () => {
           className={`transition-all duration-700 ease-out
             ${phase >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-8'}`}
         >
-          <p className="font-military text-camp-arena/70 tracking-[0.45em] text-xs sm:text-sm uppercase mb-3">
+          <p className="font-military text-camp-arena/70 tracking-[0.45em] text-sm sm:text-base uppercase mb-4">
             ★ &nbsp;Bello · Antioquia&nbsp; ★
           </p>
 
-          <h1 className="font-display text-5xl sm:text-7xl md:text-8xl text-camp-hueso leading-none drop-shadow-lg whitespace-nowrap">
+          <h1 className="font-display text-6xl sm:text-8xl md:text-9xl text-camp-hueso leading-none drop-shadow-lg whitespace-nowrap">
             PREPÁRATE PARA SER UN BUEN
           </h1>
-          <h1 className="font-display text-5xl sm:text-7xl md:text-8xl text-camp-dorado leading-none drop-shadow-lg whitespace-nowrap">
+          <h1 className="font-display text-6xl sm:text-8xl md:text-9xl text-camp-dorado leading-none drop-shadow-lg whitespace-nowrap">
             SOLDADO DE CRISTO
           </h1>
 
-          <div className="flex items-center justify-center gap-4 mt-3">
-            <div className="h-px w-12 sm:w-20 bg-camp-dorado/50" />
-            <p className="font-display text-3xl sm:text-5xl text-camp-arena/85">2026</p>
-            <div className="h-px w-12 sm:w-20 bg-camp-dorado/50" />
+          <div className="flex items-center justify-center gap-4 mt-4">
+            <div className="h-px w-16 sm:w-24 bg-camp-dorado/50" />
+            <p className="font-display text-4xl sm:text-6xl text-camp-arena/85">2026</p>
+            <div className="h-px w-16 sm:w-24 bg-camp-dorado/50" />
           </div>
         </div>
 
@@ -109,10 +109,10 @@ export const Landing = () => {
           className={`transition-all duration-700 ease-out mt-5 sm:mt-7
             ${phase >= 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
         >
-          <p className="font-military text-camp-arena/75 text-sm sm:text-xl italic leading-relaxed">
+          <p className="font-military text-camp-arena/75 text-base sm:text-2xl italic leading-relaxed">
             &ldquo;Sufre penalidades como buen soldado de Jesucristo&rdquo;
           </p>
-          <p className="font-military text-camp-dorado/75 text-xs sm:text-sm tracking-[0.35em] mt-1 uppercase">
+          <p className="font-military text-camp-dorado/75 text-sm sm:text-base tracking-[0.35em] mt-2 uppercase">
             — 2 Timoteo 2:3
           </p>
         </div>
@@ -125,8 +125,8 @@ export const Landing = () => {
           <button
             onClick={handleStart}
             className="
-              font-display tracking-[0.25em] text-lg sm:text-2xl
-              px-10 sm:px-16 py-4 sm:py-5
+              font-display tracking-[0.25em] text-xl sm:text-3xl
+              px-12 sm:px-20 py-5 sm:py-6
               border-2 border-camp-dorado text-camp-dorado
               bg-transparent
               hover:bg-camp-dorado hover:text-camp-carbon

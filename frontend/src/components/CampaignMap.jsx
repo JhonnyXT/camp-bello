@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useSpring, animated } from '@react-spring/web';
+import ReactPlayer from 'react-player';
+import contadorVideo from '../assets/contador.mp4';
 import { MAP_ZONES } from '../constants/mapZones';
 import { SOLDIERS_MAP } from '../constants/soldiers';
 import { getZone, getProgressPct, formatPoints } from '../utils/game';
@@ -209,6 +212,217 @@ const Leaderboard = ({ teams, maxCash }) => {
   );
 };
 
+// ── Barra animada del ranking ─────────────────────────────────────
+const ANIM_DURATION = 3500; // ms que tarda cada barra en subir
+
+const RankingBar = ({ team, rank, ready, revealed }) => {
+  const medals = ['🥇', '🥈', '🥉'];
+
+  // Todas las barras suben en paralelo, misma duración
+  const barSpring = useSpring({
+    height: ready ? `${Math.max(Number(team.percent) || 2, 2)}%` : '0%',
+    config: { duration: ANIM_DURATION },
+  });
+
+  // Info aparece con fade al revelar
+  const infoSpring = useSpring({
+    opacity: revealed ? 1 : 0,
+    transform: revealed ? 'translateY(0px)' : 'translateY(8px)',
+    config: { tension: 90, friction: 20 },
+  });
+
+  return (
+    <div className="flex flex-col items-center gap-0" style={{ flex: 1, maxWidth: '150px', height: '100%' }}>
+      {/* Info: oculta mientras suben, se revela al finalizar */}
+      <animated.div style={infoSpring} className="text-center mb-3 flex-shrink-0">
+        <p className="text-3xl mb-1">{medals[rank] ?? '🏅'}</p>
+        <p className="font-display text-2xl text-white leading-none">
+          {Number(team.cash).toLocaleString('es-CO')}
+        </p>
+        <p className="font-military text-sm text-white/60 tracking-widest uppercase mt-1 truncate max-w-[130px]">
+          {team.name}
+        </p>
+      </animated.div>
+      <div className="w-full flex-1 flex items-end">
+        <animated.div
+          style={{
+            ...barSpring,
+            width: '100%',
+            backgroundColor: team.color,
+            borderRadius: '4px 4px 0 0',
+            boxShadow: `0 0 30px ${team.color}80`,
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// ── Overlay de ranking final (video + barras) ─────────────────────
+const RankingOverlay = ({ onClose }) => {
+  const [rankTeams,   setRankTeams]   = useState([]);
+  const [videoEnded,  setVideoEnded]  = useState(false);
+  const [barsReady,   setBarsReady]   = useState(false);
+  const [revealed,    setRevealed]    = useState(false);
+  const [showWinner,  setShowWinner]  = useState(false);
+  const revealBtnSpring = useSpring({
+    opacity: revealed ? 1 : 0,
+    transform: revealed ? 'translateY(0px)' : 'translateY(20px)',
+    config: { tension: 80, friction: 20 },
+  });
+
+  useEffect(() => {
+    const fetchRank = async () => {
+      try {
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/teams/rank`);
+        setRankTeams([...data].sort((a, b) => Number(b.cash) - Number(a.cash)));
+      } catch { /* silencioso */ }
+    };
+    fetchRank();
+  }, []);
+
+  useEffect(() => {
+    if (!videoEnded) return;
+    // Pequeño delay antes de arrancar la animación
+    const t1 = setTimeout(() => setBarsReady(true), 300);
+    // Revelar resultados cuando termina la animación de las barras
+    const t2 = setTimeout(() => setRevealed(true), 300 + ANIM_DURATION + 400);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [videoEnded]);
+
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const titleSpring = useSpring({
+    opacity: barsReady ? 1 : 0,
+    transform: barsReady ? 'translateY(0px)' : 'translateY(-16px)',
+    config: { tension: 80, friction: 18 },
+  });
+
+  return (
+    <div className="fixed inset-0 z-50" style={{ background: '#000' }}>
+      {/* Botón cerrar siempre visible */}
+      <button
+        onClick={onClose}
+        className="absolute top-5 right-5 z-10 font-military text-xs tracking-[0.4em] uppercase px-5 py-2.5 border border-white/20 text-white/40 hover:text-white/80 hover:border-white/50 transition-all rounded-sm"
+      >
+        ESC · CERRAR
+      </button>
+
+      {/* ── Fase 1: video ── */}
+      {!videoEnded && (
+        <ReactPlayer
+          url={contadorVideo}
+          playing
+          width="100%"
+          height="100vh"
+          onEnded={() => setVideoEnded(true)}
+          style={{ position: 'absolute', inset: 0 }}
+        />
+      )}
+
+      {/* ── Fase 2: barras animadas ── */}
+      {videoEnded && (
+        <div className="h-screen w-full flex flex-col items-center justify-between py-10 px-8"
+          style={{ background: 'radial-gradient(ellipse at top, rgba(200,146,42,0.12) 0%, rgba(0,0,0,1) 70%)' }}>
+
+          {/* Título */}
+          <animated.div style={titleSpring} className="text-center">
+            <p className="font-military text-white/35 tracking-[0.55em] text-xs uppercase mb-3">
+              ★ &nbsp;Resultados Finales&nbsp; ★
+            </p>
+            <h1
+              className="font-display text-camp-dorado leading-none drop-shadow-lg"
+              style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', letterSpacing: '0.2em',
+                textShadow: '0 0 40px rgba(200,146,42,0.5)' }}
+            >
+              TABLA DE HONOR
+            </h1>
+          </animated.div>
+
+          {/* Barras */}
+          <div className="flex items-end justify-center gap-6 w-full max-w-5xl" style={{ height: '58vh' }}>
+            {rankTeams.map((team, i) => (
+              <RankingBar key={team.id} team={team} rank={i} ready={barsReady} revealed={revealed} />
+            ))}
+          </div>
+
+          {/* Línea base */}
+          <div className="w-full max-w-5xl h-px bg-white/15" />
+
+          {/* Botón revelar ganador — aparece cuando los resultados están visibles */}
+          <animated.div style={revealBtnSpring}>
+            <button
+              onClick={() => setShowWinner(true)}
+              className="font-display tracking-[0.3em] uppercase px-14 py-5 border-2 border-camp-dorado text-camp-dorado hover:bg-camp-dorado hover:text-camp-carbon active:scale-95 transition-all duration-300 rounded-sm animate-pulse-slow hover:animate-none"
+              style={{ fontSize: 'clamp(1rem, 2.5vw, 1.4rem)', textShadow: '0 0 20px rgba(200,146,42,0.5)' }}
+            >
+              🏆 &nbsp;REVELAR GANADOR
+            </button>
+          </animated.div>
+        </div>
+      )}
+
+      {/* ── Overlay del ganador ── */}
+      {showWinner && rankTeams.length > 0 && (() => {
+        const winner = rankTeams[0];
+        return (
+          <div
+            className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-8 animate-fade-in"
+            style={{ background: '#000' }}
+            onClick={() => setShowWinner(false)}
+          >
+            {/* Glow de color del equipo — capa separada, nunca transparenta el fondo */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `radial-gradient(ellipse at center, ${winner.color}50 0%, transparent 65%)`,
+              }}
+            />
+            <button
+              onClick={e => { e.stopPropagation(); setShowWinner(false); }}
+              className="absolute top-6 right-6 z-10 font-military text-white/40 hover:text-white text-base tracking-widest border border-white/20 hover:border-white/60 px-5 py-2 rounded-sm transition-all"
+            >
+              ESC · CERRAR
+            </button>
+
+            {/* Trofeo */}
+            <div className="relative z-10 mb-6 animate-zoom-in">
+              <span style={{ fontSize: '10rem', lineHeight: 1 }}>🏆</span>
+            </div>
+
+            {/* Nombre del equipo */}
+            <h1
+              className="relative z-10 font-display animate-zoom-in text-center leading-none"
+              style={{
+                fontSize: 'clamp(5rem, 15vw, 11rem)',
+                color: winner.color,
+                textShadow: `0 0 60px ${winner.color}, 0 0 120px ${winner.color}60`,
+                letterSpacing: '0.15em',
+              }}
+            >
+              {winner.name.toUpperCase()}
+            </h1>
+
+            {/* Subtítulo */}
+            <p className="relative z-10 font-military text-white/70 tracking-[0.5em] text-2xl uppercase mt-6 animate-fade-in">
+              ★ &nbsp;CAMPEÓN DEL CAMPAMENTO&nbsp; ★
+            </p>
+
+            {/* Versículo */}
+            <p className="relative z-10 font-military text-white/30 text-base tracking-widest italic mt-10 animate-fade-in">
+              &ldquo;Sufre penalidades como buen soldado de Jesucristo&rdquo; — 2 Tim 2:3
+            </p>
+          </div>
+        );
+      })()}
+    </div>
+  );
+};
+
 // ── Componente principal ─────────────────────────────────────────
 export const CampaignMap = () => {
   const navigate = useNavigate();
@@ -222,6 +436,7 @@ export const CampaignMap = () => {
   const [liveDecision,  setLiveDecision]  = useState(null);
   const [liveMission,   setLiveMission]   = useState(null);
   const [ruletaSpin,    setRuletaSpin]    = useState(null);
+  const [showRanking,   setShowRanking]   = useState(false);
 
   // Cerrar overlay con ESC
   useEffect(() => {
@@ -267,6 +482,8 @@ export const CampaignMap = () => {
       if (type === 'mision-hide')   { setLiveMission(null);               return; }
       if (type === 'ruleta-spin')   { setRuletaSpin(e.data);              return; }
       if (type === 'ruleta-hide')   { setRuletaSpin(null);                return; }
+      if (type === 'ranking-show')  { setShowRanking(true);               return; }
+      if (type === 'ranking-hide')  { setShowRanking(false);              return; }
       if (type === 'quiz-result')   setLiveQuestion(null);
       if (type === 'decision')      setLiveDecision(null);
       if (type === 'mision')        setLiveMission(null);
@@ -536,6 +753,11 @@ export const CampaignMap = () => {
 
       {/* ── Overlay de ruleta girando (ruleta-spin) ── */}
       {ruletaSpin && <RuletaSpinOverlay data={ruletaSpin} />}
+
+      {/* ── Overlay de ranking final (video + barras) ── */}
+      {showRanking && (
+        <RankingOverlay onClose={() => setShowRanking(false)} />
+      )}
 
       {/* ── Overlay de evento en tiempo real ── */}
       {flashEvent && (() => {

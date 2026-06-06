@@ -1661,6 +1661,17 @@ export const CommandPanel = () => {
             🗺️ Ver Mapa
           </button>
           <button
+            onClick={() => {
+              const ch = new BroadcastChannel('camp-events');
+              ch.postMessage({ type: 'ranking-show' });
+              ch.close();
+            }}
+            className="font-military text-xs tracking-widest uppercase px-4 py-2 rounded-sm border transition-all"
+            style={{ borderColor: 'rgba(200,146,42,0.6)', color: 'rgba(200,146,42,0.95)', background: 'rgba(200,146,42,0.10)' }}
+          >
+            🏆 Ranking Final
+          </button>
+          <button
             onClick={() => navigate('/seleccion')}
             className="font-military text-xs tracking-widest uppercase px-4 py-2 rounded-sm border transition-all"
             style={{ borderColor: 'rgba(212,197,169,0.4)', color: 'rgba(212,197,169,0.8)', background: 'rgba(212,197,169,0.06)' }}

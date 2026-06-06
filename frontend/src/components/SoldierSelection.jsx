@@ -6,17 +6,17 @@ import { SOLDIERS, STAT_KEYS } from '../constants/soldiers';
 
 // ── Barras de stats ───────────────────────────────────────────────────────────
 const StatDots = ({ stats, dotClass }) => (
-  <div className="space-y-1.5">
+  <div className="space-y-2">
     {STAT_KEYS.map(stat => (
-      <div key={stat} className="flex items-center gap-2">
-        <span className="font-military text-[10px] text-camp-arena/40 w-14 uppercase tracking-widest shrink-0">
+      <div key={stat} className="flex items-center gap-3">
+        <span className="font-military text-xs text-camp-arena/50 w-20 uppercase tracking-widest shrink-0">
           {stat}
         </span>
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           {Array.from({ length: 5 }, (_, i) => (
             <div
               key={i}
-              className={`w-2 h-2 rounded-sm transition-all ${
+              className={`w-3 h-3 rounded-sm transition-all ${
                 i < stats[stat] ? `${dotClass} opacity-85` : 'bg-camp-arena/10'
               }`}
             />
@@ -37,62 +37,62 @@ const SoldierCard = ({ soldier, soldierIndex, assignedTeams, onAssign, onUnassig
         relative flex flex-col rounded-sm border bg-gradient-to-b
         ${soldier.bgClass} ${soldier.borderClass}
         ${hasTeams ? `${soldier.activeGlowClass} border-opacity-100` : `${soldier.glowClass} border-opacity-40 hover:border-opacity-75`}
-        transition-all duration-300 p-5
+        transition-all duration-300 p-7
       `}
     >
       {/* Indicador vivo cuando tiene equipo */}
       {hasTeams && (
-        <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-camp-dorado animate-pulse" />
+        <div className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-camp-dorado animate-pulse" />
       )}
 
       {/* Emoji + nombre */}
-      <div className="text-center mb-4">
+      <div className="text-center mb-5">
         <span
-          className="text-5xl block mb-2 animate-march"
+          className="text-6xl block mb-3 animate-march"
           style={{ animationDelay: `${soldierIndex * 0.25}s` }}
         >
           {soldier.emoji}
         </span>
-        <h2 className="font-display text-3xl text-camp-hueso tracking-widest leading-none">
+        <h2 className="font-display text-4xl text-camp-hueso tracking-widest leading-none">
           {soldier.name}
         </h2>
-        <p className="font-military text-camp-arena/55 text-sm tracking-wide mt-1">
+        <p className="font-military text-camp-arena/55 text-base tracking-wide mt-2">
           {soldier.tagline}
         </p>
       </div>
 
       {/* Bonus pasivo */}
-      <div className={`rounded-sm px-3 py-2 mb-4 text-center ${soldier.badgeClass}`}>
-        <p className="font-military text-[10px] uppercase tracking-[0.2em] opacity-70">⚡ Bonus pasivo</p>
-        <p className="font-military text-sm mt-0.5 font-semibold leading-snug">{soldier.passive}</p>
+      <div className={`rounded-sm px-4 py-3 mb-5 text-center ${soldier.badgeClass}`}>
+        <p className="font-military text-xs uppercase tracking-[0.2em] opacity-70">⚡ Bonus pasivo</p>
+        <p className="font-military text-base mt-1 font-semibold leading-snug">{soldier.passive}</p>
       </div>
 
       {/* Stats */}
-      <div className="mb-4">
+      <div className="mb-5">
         <StatDots stats={soldier.stats} dotClass={soldier.dotClass} />
       </div>
 
       {/* Versículo */}
-      <p className="font-military text-camp-arena/35 text-[11px] italic text-center mb-4 leading-relaxed">
+      <p className="font-military text-camp-arena/40 text-xs italic text-center mb-5 leading-relaxed">
         &ldquo;{soldier.verseText}&rdquo;<br />— {soldier.verse}
       </p>
 
       {/* Equipos asignados */}
       {hasTeams && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="flex flex-wrap gap-2 mb-4">
           {assignedTeams.map(team => (
             <span
               key={team.id}
-              className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-military ${soldier.badgeClass}`}
+              className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-military ${soldier.badgeClass}`}
             >
               <span
-                className="w-2 h-2 rounded-full shrink-0"
+                className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: team.color }}
               />
               {team.name}
               <button
                 onClick={() => onUnassign(team.id)}
-                className="ml-0.5 opacity-50 hover:opacity-100 transition-opacity leading-none text-sm"
+                className="ml-0.5 opacity-50 hover:opacity-100 transition-opacity leading-none text-base"
                 aria-label={`Quitar a ${team.name}`}
               >
                 ×
@@ -107,7 +107,7 @@ const SoldierCard = ({ soldier, soldierIndex, assignedTeams, onAssign, onUnassig
         <button
           onClick={() => onAssign(soldier.id)}
           className={`
-            mt-auto w-full font-military tracking-widest text-xs py-2.5 rounded-sm border
+            mt-auto w-full font-military tracking-widest text-sm py-3 rounded-sm border
             ${soldier.borderClass} text-camp-arena/60
             hover:text-camp-hueso hover:bg-white/5
             transition-all duration-200 uppercase
@@ -380,7 +380,7 @@ export const SoldierSelection = () => {
           </p>
         </div>
       ) : (
-        <div className="px-4 sm:px-6 pb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl mx-auto">
+        <div className="px-4 sm:px-6 pb-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 max-w-screen-2xl mx-auto">
           {SOLDIERS.map((soldier, idx) => (
             <SoldierCard
               key={soldier.id}
