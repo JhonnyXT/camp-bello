@@ -215,8 +215,19 @@ const Leaderboard = ({ teams, maxCash }) => {
 // ── Barra animada del ranking ─────────────────────────────────────
 const ANIM_DURATION = 3500; // ms que tarda cada barra en subir
 
+// Retorna true si el color hex es muy oscuro (luminancia < 0.05)
+const isDarkColor = (hex = '') => {
+  const c = hex.replace('#', '');
+  if (c.length < 6) return false;
+  const r = parseInt(c.slice(0, 2), 16) / 255;
+  const g = parseInt(c.slice(2, 4), 16) / 255;
+  const b = parseInt(c.slice(4, 6), 16) / 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.05;
+};
+
 const RankingBar = ({ team, rank, ready, revealed }) => {
   const medals = ['🥇', '🥈', '🥉'];
+  const darkTeam = isDarkColor(team.color);
 
   // Todas las barras suben en paralelo, misma duración
   const barSpring = useSpring({
@@ -250,7 +261,8 @@ const RankingBar = ({ team, rank, ready, revealed }) => {
             width: '100%',
             backgroundColor: team.color,
             borderRadius: '4px 4px 0 0',
-            boxShadow: `0 0 30px ${team.color}80`,
+            boxShadow: `0 0 30px ${darkTeam ? 'rgba(255,255,255,0.25)' : `${team.color}80`}`,
+            border: '2px solid rgba(255,255,255,0.75)',
           }}
         />
       </div>
